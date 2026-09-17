@@ -117,6 +117,10 @@ A preset is the art direction, and it is data, not code:
   "negative": ["3D render", "CGI", "text", "user interface"],
   "scenes":       [{ "id": "city-night", "desc": "..." }],
   "interactions": [{ "id": "B-care", "desc": "chin on both hands, looking up" }],
+  "notes":        [{ "id": "meal", "line": "该吃饭了", "hours": [11, 12, 13] }],
+  "note_gap_hours": 4,
+  "notePoses":    [{ "id": "N-hold", "desc": "holding the paper out toward the camera" }],
+  "note_layout":  "where the paper sits so it reads, and what stays open",
   "idle": "what she does when there is nothing to answer"
 }
 ```
@@ -126,6 +130,24 @@ A preset is the art direction, and it is data, not code:
 
 Scenes and interactions rotate by least-recently-used, so a small list keeps
 producing new pictures without ever repeating the last one.
+
+## The note
+
+Every so often she holds up a piece of paper with a line on it: 该吃饭了 at a meal
+hour, 该睡了 late at night, 干得漂亮 when the hour ended in something shipped. It is
+the only writing zoe ever puts in a picture, and the ban on `text` in `negative` steps aside for that one picture because the writing is the whole point of it.
+
+A note has to earn its place, so three things line up first. The hour is one the note
+belongs to (`hours`), or if no note claims the hour, the mood matches `mood`.
+Nothing has been written on paper for `note_gap_hours`. And a pose is free to
+show it in. That holds notes to a few a day instead of every hour, and the poses rotate
+between holding it up, pressing it against the window glass and carrying it on a
+whiteboard, so the same moment does not arrive the same way twice.
+
+The paper is drawn as a foreground object. `note_layout` brings it out at arm
+length toward the camera so the characters still read at wallpaper size, while the rest
+of the frame stays open for icons. A preset with `notes` but no `notePoses` or no
+`note_layout` stops the run rather than drawing something nobody can read.
 
 ## Continuity
 
@@ -213,7 +235,8 @@ npm test
 They cover the parts that are easy to get quietly wrong: the time window applied per
 line rather than per file, the same sentence arriving from two clients, harness
 scaffolding stripped out of transcripts, rotation that actually rotates, and a model
-list that fails loudly instead of downgrading. The motion tests cover the loop text and
-the player record: a pid left behind by a dead player must not look like a movie that is
-still up, and stopping must really stop it.
+list that fails loudly instead of downgrading. The note tests cover what makes a note rare
+and what it takes to show one; the motion tests cover the loop text and the player record:
+a pid left behind by a dead player must not look like a movie that is still up, and
+stopping must really stop it.
 

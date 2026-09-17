@@ -44,5 +44,79 @@
       "desc": "leaning back in a long stretch"
     }
   ],
+  "note_gap_hours": 4,
+  "note_layout": "Long shot for the room, but the note is a foreground object: she holds it out toward the camera at full arm length, square to the camera, so it reads large and sharp in the bottom-right of the frame. Everything left of centre and everything above her stays open and uncluttered for desktop icons.",
+  "notes": [
+    {
+      "id": "meal",
+      "line": "该吃饭了",
+      "hours": [
+        11,
+        12,
+        13,
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "id": "sleep",
+      "line": "该睡了",
+      "hours": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "walk",
+      "line": "起来走两步",
+      "hours": [
+        14,
+        15,
+        16
+      ]
+    },
+    {
+      "id": "water",
+      "line": "喝口水",
+      "hours": [
+        9,
+        10,
+        20
+      ]
+    },
+    {
+      "id": "push",
+      "line": "别急",
+      "mood": "在攻坚"
+    },
+    {
+      "id": "done",
+      "line": "干得漂亮",
+      "mood": "在收尾"
+    },
+    {
+      "id": "plan",
+      "line": "先想清楚",
+      "mood": "在铺开"
+    }
+  ],
+  "notePoses": [
+    {
+      "id": "N-hold",
+      "desc": "turned toward us and holding up a small square of paper, flat and square to the camera"
+    },
+    {
+      "id": "N-board",
+      "desc": "holding a small whiteboard up with both hands, its face square to the camera"
+    },
+    {
+      "id": "N-glass",
+      "desc": "pressing a note flat against the window glass beside her"
+    }
+  ],
   "idle": "standing at the window, doing nothing in particular"
 }

@@ -1,4 +1,5 @@
 import { rotate } from './state.mjs';
+import { pickNote } from './note.mjs';
 
 const STOP = new Set([
   '我们', '可以', '这个', '那个', '一下', '什么', '现在', '然后', '所以', '但是', '需要', '帮我', '怎么',
@@ -43,6 +44,20 @@ export function build({ collected, preset, state, config, now = Date.now() }) {
   const recent = items.slice(-40).reverse();
   const date = new Date(now);
   const keywords = topKeywords(recent.map((i) => i.text));
+  const mood = moodOf(recent, date);
+  const note = pickNote({
+    notes: preset.notes,
+    now,
+    history: state.history,
+    mood,
+    gapHours: preset.note_gap_hours
+  });
+  // A note needs something to be held on and a way of being held toward the camera,
+  // or it is just one more small thing in a corner nobody can read.
+  const missing = ['notePoses', 'note_layout'].filter((key) => !preset[key]?.length);
+  if (note && missing.length) {
+    throw new Error('preset ' + preset.name + ' has notes but no ' + missing.join(' and '));
+  }
 
   return {
     idle: false,
@@ -54,9 +69,10 @@ export function build({ collected, preset, state, config, now = Date.now() }) {
     keywords,
     slot: slotOf(date.getHours()),
     weekday: date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : 'weekday',
-    mood: moodOf(recent, date),
+    mood,
     scene: rotate(preset.scenes, state.history, 'scene'),
-    interaction: rotate(preset.interactions, state.history, 'interaction'),
+    note,
+    interaction: rotate(note ? preset.notePoses : preset.interactions, state.history, 'interaction'),
     wish: config.wishes?.length ? rotate(config.wishes, state.history, 'wish') : null,
     props: pickProps({ recent, keywords, memory: collected.memory || [], state }),
     desk: (state.props || []).slice().sort((a, b) => b.last - a.last).slice(0, 2).map((p) => p.name),

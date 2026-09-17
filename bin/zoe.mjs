@@ -123,7 +123,8 @@ async function cmdPrompt(cfg) {
 
 async function cmdMotion(cfg) {
   const preset = loadPreset(cfg.preset);
-  console.log(animate({ preset, seconds: num(argv.seconds, null), resolution: argv.resolution }));
+  const brief = fs.existsSync(argv.brief || briefFile) ? JSON.parse(fs.readFileSync(argv.brief || briefFile, 'utf8')) : null;
+  console.log(animate({ preset, note: brief && brief.note, seconds: num(argv.seconds, null), resolution: argv.resolution }));
 }
 
 // The desktop takes one thing at a time: a movie and a still picture cannot both
@@ -174,6 +175,7 @@ async function cmdShow(cfg) {
     topic: brief.topic || path.basename(image),
     scene: brief.scene && brief.scene.id,
     interaction: brief.interaction && brief.interaction.id,
+    note: (brief.note && brief.note.id) || null,
     props: brief.props || [],
     model: argv.model || (brief.model || null)
   }, { now: Date.now(), reuseHours: cfg.reuse_hours });
@@ -224,6 +226,7 @@ async function cmdTick(cfg) {
 
   store.remember(state, {
     at: now, image: unique, topic: brief.topic, scene: brief.scene.id, interaction: brief.interaction.id,
+    note: (brief.note && brief.note.id) || null,
     props: brief.props, model: model.id, prompt
   }, { now, reuseHours: cfg.reuse_hours });
   store.save(STATE_PATH, state);
