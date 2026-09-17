@@ -101,24 +101,42 @@ Paper is one mode of five. Two hours in a row should not speak the same way.
 ## 4. Draw it
 
 ```sh
-node bin/zoe.mjs models
+node bin/zoe.mjs models   # the one model you may use
+node bin/zoe.mjs last     # the address the last picture came back at
 ```
 
-Use the model it reports and no other. Aspect ratio 3:2. If it fails, say so and stop:
-a run that quietly drew with a different model is worse than a run that drew nothing.
+Aspect ratio 3:2, with the model `zoe models` reports and no other.
+
+When `zoe last` prints an address, draw with `image.edit` and hand that address
+in as the reference image. The picture already on the desktop is the reference, so the
+room, the hand, the palette and where everything stands come back as they were, and only
+the things the prompt names move: the view outside, what stands in the room, and what she
+is doing. Write the prompt that way, naming what stays and what changes, and keep the
+changes small — an hour apart is an hour, not a season.
+
+When it prints nothing (the first hour ever, or a picture that never came back at a
+managed address), generate from the prompt alone.
+
+The exact body is in `AGENTS.md`. If the model fails, say so and stop: a run that
+quietly drew with a different model is worse than a run that drew nothing.
 
 ## 5. Let it move
 
 A still that has just landed can become a loop. `node bin/zoe.mjs motion`
 prints the text for the video model; submit it as image-to-video with the still as the
-first frame. The first frame has to be the managed `cindy-media://` address the still
-came back at, not a local path — the upstream rejects paths. Then:
+first frame, the managed `cindy-media://` address the still came back at, not a local
+path. Then:
 
 ```sh
 node bin/zoe.mjs loop --video cindy-media://blobs/....mp4
 ```
 
 A path or a managed address, the same as `show`.
+
+That text asks for the smallest motion there is — breathing, blinking, hair and cloth
+drifting, the light easing a shade — and for no action at all: nobody stands, turns,
+crosses their legs or lifts a cup, and nothing new appears. Keep it that way. One
+recognizable action is what makes a loop feel like a loop.
 
 ## 6. Put it up
 

@@ -49,10 +49,11 @@ test('the reuse pool drops what expired or went missing', () => {
 
 test('remembering a run keeps it in the pool until it expires', () => {
   const state = { history: [], pool: [] };
-  remember(state, { at: 100, image: '/x/a.jpg', topic: 't' }, { now: 100, reuseHours: 6 });
+  remember(state, { at: 100, image: '/x/a.jpg', topic: 't', ref: 'cindy-media://blobs/a.jpg' }, { now: 100, reuseHours: 6 });
   assert.equal(state.history.length, 1);
   assert.equal(state.pool.length, 1);
   assert.equal(state.pool[0].expires_at, 100 + 6 * 3600e3);
+  assert.equal(state.pool[0].ref, 'cindy-media://blobs/a.jpg', 'the address the picture came back at survives in the pool');
 });
 
 test('state on disk survives a round trip and refuses to be clobbered', () => {

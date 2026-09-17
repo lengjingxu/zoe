@@ -39,6 +39,8 @@ async function main() {
       return cmdPrompt(cfg);
     case 'show':
       return cmdShow(cfg);
+    case 'last':
+      return cmdLast();
     case 'reuse':
       return cmdReuse(cfg);
     case 'motion':
@@ -142,12 +144,14 @@ async function cmdPrompt(cfg) {
 async function cmdShow(cfg) {
   const now = Date.now();
   const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
-  const image = path.resolve(localPath(argv.image || argv._[1]));
+  const given = argv.image || argv._[1];
+  const image = path.resolve(localPath(given));
   const unique = putOnDesktop(cfg, image);
   store.remember(state, {
     at: now,
     image: unique,
     topic: argv.topic || path.basename(image),
+    ref: isManaged(given) ? given : null,
     scene: argv.scene || null,
     interaction: argv.pose || null,
     note: argv.note || null,
@@ -165,8 +169,9 @@ async function cmdReuse(cfg) {
   const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
   if (!state.pool.length) return log('the pool is empty, nothing to bring back');
   const image = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
+  const ref = state.pool.find((p) => p.image === image)?.ref || null;
   const unique = putOnDesktop(cfg, image, now);
-  store.remember(state, { at: now, image: unique, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
+  store.remember(state, { at: now, image: unique, ref, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
   store.save(STATE_PATH, state);
   log('brought back ' + unique);
 }
@@ -222,6 +227,20 @@ function noteLine(preset, id) {
   return found.line;
 }
 
+// A managed address, or nothing when the argument was a plain path.
+function isManaged(from) {
+  return String(from || '').startsWith('cindy-media://');
+}
+
+// What the next hour draws from: the address the last picture came back at. Handing it
+// back as a reference is how the room stays the same room instead of being redrawn.
+async function cmdLast() {
+  const state = store.load(STATE_PATH);
+  const run = [...state.history].reverse().find((h) => h.ref);
+  if (!run) return log('no picture has come back at a managed address yet, there is nothing to draw from');
+  console.log(run.ref);
+}
+
 // The media tools hand back a managed address, and the bytes are already on this disk
 // under the client's own media folder: take the file from there.
 function localPath(from) {
@@ -251,6 +270,7 @@ function usage() {
     '  prompt                   the prompt in use, the one the last hour drew with',
     '  prompt --write FILE      hand over a new one: checked, then stored',
     '      [--note ID]          the note id from the preset, when she holds paper',
+    '  last                     the address of the last picture, the one to draw from',
     '  show --image FILE|ADDR   put an image on every desktop and record the hour',
     '      [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]',
     '  reuse                    bring a wallpaper back from the pool without drawing',

@@ -143,6 +143,18 @@ or the Chinese line when a note was asked for. It also stops a prompt longer tha
 characters. Nothing is written if the check fails, so a careless hour cannot quietly
 drop the rules the whole series depends on.
 
+## One hour to the next
+
+An hour is a step, not a new picture. `zoe last` hands back the address the previous
+picture came back at, and the next one is drawn from it as a reference: the room, the hand,
+the palette and where everything stands come back the way they were, and only what the
+prompt names moves. The view outside, what stands in the room and what she is doing are
+the three things an hour is allowed to change.
+
+The loop is the same idea with a smaller budget of movement: breathing, blinking, hair and
+cloth drifting, the light easing a shade, and no action at all. A single recognizable
+action is what makes a loop feel like a loop.
+
 ## The note
 
 Every so often she holds up a piece of paper with a line on it: 该吃饭了 at a meal hour,

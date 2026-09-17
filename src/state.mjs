@@ -26,7 +26,7 @@ export function prune(state, now, reuseHours, keepHistory = 200) {
 // One line per picture: enough for the next hour to know what was drawn, and no more.
 export function remember(state, entry, { now, reuseHours }) {
   state.history.push(entry);
-  state.pool.push({ at: now, expires_at: now + reuseHours * 3600e3, image: entry.image, topic: entry.topic });
+  state.pool.push({ at: now, expires_at: now + reuseHours * 3600e3, image: entry.image, ref: entry.ref || null, topic: entry.topic });
   return state;
 }
 
