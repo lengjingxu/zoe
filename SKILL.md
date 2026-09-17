@@ -95,8 +95,20 @@ Paper is one mode of five. Two hours in a row should not speak the same way.
   hour, the end of something shipped, a long night). Use the id from `preset.notes`.
 - **A keepsake arriving.** A memory that becomes an object in the room, in this picture.
 - **A keepsake leaving.** Something old goes; the next prompt stops naming it.
-- **The pose.** One of `preset.interactions`: what she is doing while you work.
+- **The pose.** One of `preset.interactions`, chosen for this hour: what she is doing
+  while you work.
 - **The view and the light.** One of `preset.scenes`, or the hour's own weather.
+
+### What she is doing
+
+The pose is this hour, drawn small. Read `items` and `memory` before choosing, and name
+the hour to yourself in one word first: deep in one thing, spread across several, stuck,
+or empty. Then take the `preset.interactions` entry that means the same thing, and put one
+thing from the hour into the same sentence: the cable being routed through the wall, the
+numbers being cut down, the last test going green. Two hours in a row should not look like
+the same hour, and a pose that would fit any hour at all is the one to avoid.
+
+The keepsakes carry the memory. The desk carries this hour.
 
 ## 4. Draw it
 
