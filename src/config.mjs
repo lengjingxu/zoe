@@ -20,7 +20,8 @@ const DEFAULTS = {
   room_keep_days: 30,
   room_add_per_run: 1,
   models: {
-    priority: ['xai/grok-imagine-image-2.0', 'openai/gpt-image-2']
+    priority: ['grok-imagine-image-2.0', 'gpt-image-2'],
+    video_priority: ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-preview']
   },
   providers: [],
   sources: { cindy: true, codex: true, claudecode: true, memory: true },

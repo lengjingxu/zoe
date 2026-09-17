@@ -22,11 +22,13 @@ about lives in `SKILL.md`, in prose, and is decided by the agent each hour.
 ## The commands
 
 ```
-init / detect / models [--import -]
+init / detect / models
 gather [--hours N] [--json]        data only: what happened, plus the long memory
 room [--write FILE]                the keepsakes, in and out
 prompt [--write FILE] [--note ID]  the text in use, and the only door a new one uses
-show --image F [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
+draw [--ref FILE|none] [--prompt FILE] [--out FILE]      the proxy draws the hour
+film [--first-frame FILE] [--prompt FILE] [--seconds N] [--out FILE]   the proxy moves it
+show --image FILE [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
 last                               the last picture, as the reference for this hour
 reuse / motion / loop / status
 ```
@@ -42,36 +44,31 @@ You are drawing the hourly wallpaper for this machine. Follow SKILL.md in this r
 start to finish, and report one line at the end.
 ```
 
-The agent needs a media tool that can draw an image, and one that can turn an image
-into a short video if the hour earns motion. Resolve a drawn image to a real local path
-before `zoe show` (`resolve_local_path` in Cindy).
+The agent needs no media tool of its own. `zoe draw` and `zoe film` talk to the gateway
+named in `~/.zoe/config.json`, and both leave a local file behind. `src/proxy.mjs` is the
+only file here that speaks to a model.
 
 ## Drawing
 
-How to draw is not up to the agent either: the model comes from `zoe models`, the
-address to draw from comes from `zoe last`, and the text comes from `zoe prompt`.
+How to draw is not up to the agent either: the model comes from the priority list in the
+config, the picture to come from is the last hour's, and the text is `~/.zoe/prompt.txt`.
+`zoe draw` joins the three and writes one file.
 
-```json
-// image.edit, whenever zoe last printed an address: the picture on the desktop is the
-// reference, so the room comes back as it was and only the hour changes
-{ "prompt": "<the prompt>", "image": "cindy-media://blobs/....jpg", "aspect_ratio": "3:2" }
-
-// image.generate, only when there is no address yet
-{ "prompt": "<the prompt>", "aspect_ratio": "3:2" }
+```
+POST {base}/images/generations   the prompt alone, on the first hour
+POST {base}/images/edits         the same, as multipart, with the previous picture as `image`
 ```
 
-Then hand the address that came back to `zoe show --image`.
+A provider in the config is an OpenAI-shaped base URL, the name of the environment
+variable that holds its key, and the model ids it serves. The key is read from that
+variable and nowhere else; if it is empty, `endpoint()` stops the run and names it. Nothing
+here picks a second model to fall back on.
 
 ## Motion
 
-`zoe motion` prints the text for the video model. Submit it as image-to-video with the
-still as the first frame, using the managed address the still came back at:
+`zoe film` sends the text from `zoe motion` and the still to `POST {base}/videos/generations`,
+then polls `GET {base}/videos/{request_id}` every ten seconds until the job is done, and writes
+the mp4 to a local file. The still goes up as a data URL, so there is no address to
+resolve and no client in the middle.
 
-```json
-{ "content": [
-  { "type": "text", "text": "<the text from zoe motion>" },
-  { "type": "image_url", "image_url": { "url": "cindy-media://blobs/....jpg" }, "role": "first_frame" }
-], "generate_audio": false }
-```
-
-A local path is rejected upstream. If you only have the file, draw the still again.
+A local path is what `loop` wants, and a local path is what `film` prints.

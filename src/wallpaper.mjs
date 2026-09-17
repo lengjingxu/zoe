@@ -61,12 +61,16 @@ export function current() {
 
 export function prune(outDir, keep) {
   if (!fs.existsSync(outDir) || !keep) return [];
-  const files = fs
-    .readdirSync(outDir)
-    .filter((f) => /^wallpaper_\d+\.jpg$/.test(f))
-    .map((f) => path.join(outDir, f))
-    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-  const doomed = files.slice(keep);
+  const doomed = [...oldest(outDir, /^wallpaper_\d+\.jpg$/, keep), ...oldest(outDir, /^loop_\d+\.mp4$/, 6)];
   for (const f of doomed) fs.unlinkSync(f);
   return doomed;
+}
+
+function oldest(outDir, pattern, keep) {
+  return fs
+    .readdirSync(outDir)
+    .filter((f) => pattern.test(f))
+    .map((f) => path.join(outDir, f))
+    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)
+    .slice(keep);
 }

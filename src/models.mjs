@@ -1,31 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { ZOE_HOME } from './config.mjs';
-
-export const CACHE = path.join(ZOE_HOME, 'models.json');
-
-// What the client says it can draw with, once it has told us. Written by
-// 'zoe models --import'.
-export function cached() {
-  if (!fs.existsSync(CACHE)) return null;
-  const data = JSON.parse(fs.readFileSync(CACHE, 'utf8'));
-  if (!Array.isArray(data.models)) throw new Error(CACHE + ' has no models array');
-  return data;
-}
-
-export function importModels(raw) {
-  const models = Array.isArray(raw) ? raw : raw.models;
-  if (!Array.isArray(models) || !models.length) throw new Error('expected {models:[{id,provider_id}, ...]}');
-  fs.mkdirSync(ZOE_HOME, { recursive: true });
-  fs.writeFileSync(CACHE, JSON.stringify({ at: Date.now(), models }, null, 2) + '\n');
-  return CACHE;
-}
-
 // Walks the configured priority list and returns the first model that is actually
 // reachable. The caller always sees the id it will use and what was skipped, so a
 // run can never be quietly downgraded to a different model.
 export function resolve(config, available) {
-  const source = available || (cached() && cached().models) || providerModels(config);
+  const source = available || configured(config);
   const ids = source.map((m) => m.id);
   const skipped = [];
   for (const want of config.models.priority) {
@@ -65,6 +42,6 @@ function escape(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function providerModels(config) {
+export function configured(config) {
   return (config.providers || []).flatMap((p) => (p.models || []).map((id) => ({ id, provider_id: p.id })));
 }

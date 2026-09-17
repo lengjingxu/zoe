@@ -17,7 +17,7 @@ in every picture for a few weeks, and then leaves.
   Cindy      (sqlite transcript) ┐
   Codex      (rollout jsonl)     ├─▶ gather ─▶ room ─▶ prompt ─▶ image ─▶ wallpaper
   Claude Code(jsonl transcript)  ┘      │        │        │         │
-  long memory (project notes) ───┘      │        │        │         └─ grok, then gpt-image-2
+  long memory (project notes) ───┘      │        │        │         └─ the gateway: grok, then gpt-image-2
                                         │        │        └─ the agent's text, checked
                                         │        └─ a memory becomes an object
                                         └─ only the last hour, only what a human typed
@@ -41,8 +41,8 @@ Two rules make it work:
 
 ## Requirements
 
-macOS, Node 20.11+, `sqlite3` on PATH. No dependencies. An agent that can draw images
-(Claude Code, Codex or Cindy) to run the hour.
+macOS, Node 20.11+, `sqlite3` on PATH. No dependencies. An OpenAI-shaped image and
+video gateway to draw through, and an agent (Claude Code, Codex or Cindy) to run the hour.
 
 ## Install
 
@@ -50,6 +50,7 @@ macOS, Node 20.11+, `sqlite3` on PATH. No dependencies. An agent that can draw i
 git clone https://github.com/<you>/zoe && cd zoe
 node bin/zoe.mjs init          # writes ~/.zoe/config.json
 node bin/zoe.mjs detect        # which clients were found on this machine
+node bin/zoe.mjs models        # the priority list, and which model it picks
 ```
 
 Then ask your agent to follow `SKILL.md`, or put the hourly job on a schedule:
@@ -68,11 +69,14 @@ zoe room                          # what stands in the room, and what it could t
 zoe room --write FILE             # add or retire keepsakes
 zoe prompt                        # the text the last hour drew with
 zoe prompt --write FILE           # hand over a new one: checked, then stored
-zoe models [--import -]           # the model priority list, and which one wins
-zoe show --image FILE|ADDR [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
+zoe models                        # the model priority list, and which one wins
+zoe last                          # the picture the last hour left, to draw from
+zoe draw [--ref FILE|none]        # the gateway draws this hour, prints the file
+zoe film [--first-frame FILE]     # the gateway turns that still into a loop
+zoe show --image FILE [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
 zoe reuse                         # bring a wallpaper back from the pool, costs nothing
 zoe motion                        # the text that turns the picture into a loop
-zoe loop --video FILE|ADDR       play a movie on the desktop layer instead of a still
+zoe loop --video FILE             # play a movie on the desktop layer instead of a still
 zoe status                        # the last hours, the pool, the desktop
 ```
 
@@ -145,11 +149,12 @@ drop the rules the whole series depends on.
 
 ## One hour to the next
 
-An hour is a step, not a new picture. `zoe last` hands back the address the previous
-picture came back at, and the next one is drawn from it as a reference: the room, the hand,
-the palette and where everything stands come back the way they were, and only what the
-prompt names moves. The view outside, what stands in the room and what she is doing are
-the three things an hour is allowed to change.
+An hour is a step, not a new picture. `zoe draw` sends the file the last hour left on the
+desktop as the reference, so the room, the hand, the palette and where everything stands
+come back the way they were, and only what the prompt names moves. The view outside, what
+stands in the room and what she is doing are the three things an hour is allowed to
+change. The text for it comes from `~/.zoe/prompt.txt`, which the agent rewrites each
+hour out of the previous one instead of starting from a blank page.
 
 The loop is the same idea with a smaller budget of movement: breathing, blinking, hair and
 cloth drifting, the light easing a shade, and no action at all. A single recognizable
@@ -172,32 +177,43 @@ picture that does not name the line it is holding does not pass the check.
 
 ## Models
 
-`zoe models` walks the priority list and prints what it will actually use, plus
-whatever it skipped to get there:
+Every picture comes from one gateway, named in `~/.zoe/config.json`. `zoe models` walks
+the priority list and prints what it will use, and what it skipped to get there:
 
 ```
-priority  : xai/grok-imagine-image-2.0  ->  openai/gpt-image-2
-picked    : xai/grok-imagine-image-2.0
+priority  : grok-imagine-image-2.0  ->  gpt-image-2
+video     : grok-imagine-video-1.5  ->  grok-imagine-video-1.5-preview
+providers : proxy (5 models)
+available : grok-imagine-image-2.0, gpt-image-2, grok-imagine-video-1.5, ...
+picked    : grok-imagine-image-2.0
 ```
 
-The default is grok first, `gpt-image-2` second. The list belongs to the client, so
-import it once and zoe stops guessing:
-
-```sh
-# the agent calls its own media list_models and pipes the result in
-zoe models --import -    # {"models":[{"id":"xai/grok-imagine-image-2.0","provider_id":"xai"}, ...]}
+```json
+{ "models": {
+    "priority": ["grok-imagine-image-2.0", "gpt-image-2"],
+    "video_priority": ["grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] },
+  "providers": [
+    { "id": "proxy",
+      "base_url": "http://your-gateway:8080/v1",
+      "api_key_env": "GPT_IMAGE_API_KEY",
+      "models": ["grok-imagine-image-2.0", "gpt-image-2",
+                 "grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] } ] }
 ```
 
-A wildcard such as `xai/grok-imagine-image*` follows the newest numbered variant in
-that family. If none of them are available zoe says so and the run stops; drawing with
-a model nobody asked for is worse than drawing nothing. You can also list the models in
-`providers` in the config instead of importing the client's list.
+The gateway is OpenAI-shaped: `/images/generations`, `/images/edits`,
+`/videos/generations` and `/videos/{request_id}`. The key is read from the environment
+variable the provider names and never from a file; an empty variable stops the run and
+says which one it wanted. The ids under `models` are the ids the gateway serves, so list
+them once (`curl $BASE/models`) and paste them in.
+
+A wildcard such as `grok-imagine-image*` follows the newest numbered variant of that
+family. If nothing on the list is there, zoe says so and stops; drawing with a model
+nobody asked for is worse than drawing nothing.
 
 ## Setting the wallpaper
 
-`zoe show --image` takes a path or the managed `cindy-media://` address a media
-tool handed back; for a managed address the bytes come from the client's own media
-folder. It writes a fresh timestamped file, because macOS caches a wallpaper by path, then
+`zoe show --image` takes a file on this disk, which is what `zoe draw` and `zoe film`
+print. It writes a fresh timestamped file, because macOS caches a wallpaper by path, then
 asks every desktop what it is actually showing. macOS drops a desktop change now and then
 — on a two-display setup one screen can quietly keep the old picture — so a desktop that
 missed gets set again, and one that still refuses is an error rather than a half-done job
@@ -209,25 +225,17 @@ A still picture cannot move, so the same picture becomes a loop: the still you a
 like is the first frame, and only the small things change.
 
 ```sh
-zoe motion                     # the exact text the video model receives
-zoe loop --video clip.mp4      # play it on the desktop, under the icons
-zoe loop --stop                # take it off again
+zoe motion                          # the exact text the video model receives
+zoe film                            # that text plus the picture on the desktop now
+zoe loop --video ~/Pictures/zoe/loop_....mp4   # play it, under the icons
+zoe loop --stop                     # take it off again
 ```
 
-`zoe motion` prints the loop from the preset plus the model parameters, which is the
-whole body the video model needs:
-
-```
-Locked-off camera, one continuous take, no cuts, and the last frame lands back on
-the first so the loop has no seam. Only small motion ...
-The camera does not move and the framing never changes ...
---duration 6 --resolution 720p
-```
-
-In agent mode the agent pairs that text with the still as the first frame and submits
-it — the body is in `AGENTS.md`. The first frame has to be a managed address from the
-same client that draws the video; a local path is rejected upstream, which is how this
-was found.
+`zoe motion` prints the loop from the preset: the locked-off camera, the ban on action and
+the hold. `zoe film` pairs that text with the still, sends both, and polls until the
+clip is ready. The length and the size travel as fields on the request, not as words in
+the prompt: `--seconds` (6 by default) and `--resolution` (720p by default, which
+comes back 1168x768).
 
 ### Getting a movie onto the desktop
 
@@ -240,16 +248,16 @@ one thing at a time.
 
 ### What a loop costs
 
-Measured on one 3:2 still at `--duration 6 --resolution 720p`:
+Measured through the gateway on one 3:2 still of 1248x832:
 
-- **It is softer than the still.** The clip came back 1178x786. On a retina display that
-  is a real step down from the picture it was made from, and 720p is the top setting the
-  model offers. The still is the sharp version of the same image; the loop is the moving one.
-- **The seam is close, not perfect.** Last frame against first frame lands around 30 dB, so
+- **It is softer than the still.** At the default resolution the clip came back 672x448;
+  at `--resolution 720p` it came back 1168x768. On a retina display the small one is a
+  visible step down from the picture it was made from.
+- **The seam is close, not perfect.** Last frame against first frame lands near 26 dB, so
   the jump back to the start is visible if you are looking for it. The prompt asks for a
   seamless loop and the model approximates it; nobody guarantees it.
-- **The composition holds.** The first frame against the still it came from is around 37 dB,
-  and the subject stays where the layout rule put her.
+- **The composition holds.** The first frame against the still it came from is around
+  29 dB, and the subject stays where the layout rule put her.
 
 A movie is not free. It costs GPU and battery on a large display; if the fan matters
 more than the drift, stay with the stills.
