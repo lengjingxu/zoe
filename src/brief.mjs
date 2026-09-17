@@ -42,6 +42,7 @@ export function build({ collected, preset, state, config, now = Date.now() }) {
 
   const recent = items.slice(-40).reverse();
   const date = new Date(now);
+  const keywords = topKeywords(recent.map((i) => i.text));
 
   return {
     idle: false,
@@ -50,14 +51,14 @@ export function build({ collected, preset, state, config, now = Date.now() }) {
     to: collected.to,
     topic: pickTopic(recent) || '(unnamed)',
     project: pickProject(items),
-    keywords: topKeywords(recent.map((i) => i.text)),
+    keywords,
     slot: slotOf(date.getHours()),
     weekday: date.getDay() === 0 || date.getDay() === 6 ? 'weekend' : 'weekday',
     mood: moodOf(recent, date),
     scene: rotate(preset.scenes, state.history, 'scene'),
     interaction: rotate(preset.interactions, state.history, 'interaction'),
     wish: config.wishes?.length ? rotate(config.wishes, state.history, 'wish') : null,
-    props: pickProps({ recent, memory: collected.memory || [], state }),
+    props: pickProps({ recent, keywords, memory: collected.memory || [], state }),
     desk: (state.props || []).slice().sort((a, b) => b.last - a.last).slice(0, 2).map((p) => p.name),
     evidence: recent.slice(0, 3).map((i) => ({ source: i.source, project: i.project, text: i.text.slice(0, 80) }))
   };
@@ -128,7 +129,7 @@ function usable(word) {
 
 // The concrete, personal details that make a picture feel like it is about your own
 // day: a measured size, an amount, and something out of the long memory.
-function pickProps({ recent, memory, state }) {
+function pickProps({ recent, keywords, memory, state }) {
   const text = recent.map((i) => i.text).join(' ');
   const found = [];
 
@@ -137,10 +138,18 @@ function pickProps({ recent, memory, state }) {
 
   const known = new Set((state.props || []).map((p) => p.name));
   const fresh = found.filter((name) => !known.has(name));
-  const fromMemory = (memory || [])
+  return [...new Set([...fresh, ...fromMemory({ memory, keywords, known })])].slice(0, 2);
+}
+
+// A note from months ago becomes an easter egg only if it has something to do
+// with today, so memory is ranked by overlap with this hour first, age second.
+function fromMemory({ memory, keywords, known }) {
+  const words = (keywords || []).map((k) => k.word);
+  return (memory || [])
     .filter((m) => m.title && !known.has(m.title) && !NOT_PROP.test(m.title))
-    .map((m) => m.title);
-  return [...new Set([...fresh, ...fromMemory])].slice(0, 2);
+    .map((m) => ({ m, hit: words.filter((w) => m.title.includes(w) || (m.text || '').includes(w)).length }))
+    .sort((a, b) => b.hit - a.hit || b.m.at - a.m.at)
+    .map((x) => x.m.title);
 }
 
 function slotOf(hour) {

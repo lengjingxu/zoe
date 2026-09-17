@@ -66,6 +66,23 @@ test('props are things, not turns of phrase', () => {
   assert.ok(!brief.props.some((p) => p.includes('怎么')), JSON.stringify(brief.props));
 });
 
+test('a note from long memory has to touch today to lead the picture', () => {
+  const brief = build({
+    collected: collected(
+      [item('优惠券分类口径要改成混补', 1), item('优惠券分类口径再确认一下', 2)],
+      [
+        { at: 1, title: '家庭税务结构', text: '工资与小微收款' },
+        { at: 2, title: '优惠券分类规范', text: '低于7折是混补' }
+      ]
+    ),
+    preset,
+    state: { history: [], props: [] },
+    config: {}
+  });
+  assert.equal(brief.props[0], '优惠券分类规范', JSON.stringify(brief.props));
+  assert.ok(brief.props.includes('家庭税务结构'), 'the unrelated one still reaches the desk, just second');
+});
+
 test('the prompt carries style, the moment, the layout and the open area', () => {
   const brief = build({
     collected: collected([item('把优惠券分类的口径改成低于7折算混补', 1)]),
