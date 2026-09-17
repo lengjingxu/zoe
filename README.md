@@ -54,6 +54,8 @@ zoe prompt                     # the exact text the image model receives
 zoe models --import -          # remember the client's model list (see below)
 zoe render                     # draw it (needs a provider, see below)
 zoe show --image FILE          # put an image on every desktop and record it
+zoe motion                     # the text that turns the picture on screen into a loop
+zoe loop --video FILE          # play a movie on the desktop layer instead of a still
 zoe tick                       # the whole loop, standalone
 zoe status                     # history, reuse pool, the props that accumulated
 ```
@@ -143,22 +145,43 @@ prompts and the briefs stay on disk. Nothing is uploaded anywhere else, and the 
 ships no personal data: your config lives in `~/.zoe/`, your pictures in the
 `out_dir` you choose.
 
-## Motion (planned, v0.2)
+## Motion
 
-Three separate problems, with very different costs:
+A still picture cannot move, so the same picture becomes a loop: the still you
+already like is the first frame, and only the small things change.
 
-1. **Ambient loop** — waves, bamboo, rain, drifting cloud. The client already
-   exposes video models with a documented body (duration 4–30s at 720p), and the
-   same brief can describe the loop.
-2. **Subject micro-motion** — hair moving, a leg crossing, a pen turning. This needs
-   image-to-video with the still as the first frame, so the drawing you already like
-   is the one that moves. Not verified against the client's guide yet.
-3. **Getting it onto the desktop** — macOS cannot set a video as wallpaper. zoe will
-   not pretend otherwise: the plan is a small window at `kCGDesktopWindowLevel`
-   looping a local file, plus a plain mp4 you can hand to any wallpaper tool you
-   already have.
+```sh
+zoe motion                     # the exact text the video model receives
+zoe loop --video clip.mp4      # play it on the desktop, under the icons
+zoe loop --stop                # take it off again
+```
 
-The layout rule does not change. A loop only earns its keep if the 85% stays quiet.
+`zoe motion` prints the loop from the preset plus the model parameters, which is the
+whole body the video model needs:
+
+```
+Locked-off camera, one continuous take, no cuts, and the last frame lands back on
+the first so the loop has no seam. Only small motion ...
+The camera does not move and the framing never changes ...
+--duration 6 --resolution 720p
+```
+
+In agent mode the agent pairs that text with the still as the first frame and submits
+it — the body is in `AGENTS.md`. The first frame has to be a managed address from the
+same client that draws the video; a local path is rejected upstream, which is how this
+was found.
+
+### Getting a movie onto the desktop
+
+macOS has no supported way to set a video as wallpaper. zoe does not pretend
+otherwise: `zoe loop` builds a small Swift window (`native/DesktopMovie.swift`,
+compiled once into `~/.zoe/bin/`) pinned to `kCGDesktopWindowLevel` — above the
+wallpaper, below the icons, click-through, one window per display — and loops the file
+with `AVPlayerLooper`. `zoe show --image` stops the movie, because the desktop holds
+one thing at a time.
+
+A movie is not free. It costs GPU and battery on a large display; if the fan matters
+more than the drift, stay with the stills.
 
 ## Tests
 
@@ -169,5 +192,7 @@ npm test
 They cover the parts that are easy to get quietly wrong: the time window applied per
 line rather than per file, the same sentence arriving from two clients, harness
 scaffolding stripped out of transcripts, rotation that actually rotates, and a model
-list that fails loudly instead of downgrading.
+list that fails loudly instead of downgrading. The motion tests cover the loop text and
+the player record: a pid left behind by a dead player must not look like a movie that is
+still up, and stopping must really stop it.
 

@@ -3,6 +3,7 @@
   "style": "Hand-drawn illustration, flat shapes, soft limited palette, quiet and clean. No 3D render, no CGI.",
   "character": "a composed adult person, seen from far away, at their desk",
   "layout": "Extreme long shot. The person occupies only the bottom-right corner, about 15% of the frame. The other 85% stays open and uncluttered for desktop icons.",
+  "motion": "Locked-off camera, one continuous take, no cuts, and the last frame lands back on the first so the loop has no seam. Only small motion: she shifts her weight, turns a page, breathes; loose fabric and hair move in a slow breeze; the view outside drifts on its own. Nothing enters or leaves the frame, nothing changes size, and no new object appears.",
   "negative": [
     "3D render",
     "CGI",

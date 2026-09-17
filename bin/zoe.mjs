@@ -9,6 +9,8 @@ import * as modelList from '../src/models.mjs';
 import * as renderer from '../src/renderer.mjs';
 import * as wallpaper from '../src/wallpaper.mjs';
 import * as store from '../src/state.mjs';
+import * as movie from '../src/movie.mjs';
+import { animate } from '../src/motion.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 const briefFile = path.join(ZOE_HOME, 'brief.json');
@@ -38,6 +40,10 @@ async function main() {
       return cmdRender(cfg);
     case 'show':
       return cmdShow(cfg);
+    case 'motion':
+      return cmdMotion(cfg);
+    case 'loop':
+      return cmdLoop(cfg);
     case 'tick':
       return cmdTick(cfg);
     case 'status':
@@ -109,6 +115,27 @@ async function cmdPrompt(cfg) {
   console.log(compose({ brief, preset }));
 }
 
+async function cmdMotion(cfg) {
+  const preset = loadPreset(cfg.preset);
+  console.log(animate({ preset, seconds: num(argv.seconds, null), resolution: argv.resolution }));
+}
+
+// The desktop takes one thing at a time: a movie and a still picture cannot both
+// be the wallpaper, so starting either stops the other.
+async function cmdLoop(cfg) {
+  if (argv.stop) {
+    const was = movie.stop();
+    return log(was ? 'took the movie off the desktop: ' + was.file : 'no movie was playing');
+  }
+  const file = argv.video || argv._[1];
+  if (!file) {
+    const now = movie.running();
+    return log(now ? 'playing ' + now.file + ' (pid ' + now.pid + ')' : 'nothing playing on the desktop');
+  }
+  const state = movie.play(file);
+  log('playing ' + state.file + ' at the desktop layer (pid ' + state.pid + ')');
+}
+
 async function cmdRender(cfg) {
   const preset = loadPreset(cfg.preset);
   const brief = JSON.parse(fs.readFileSync(argv.brief || briefFile, 'utf8'));
@@ -126,6 +153,8 @@ async function cmdShow(cfg) {
   const state = store.prune(store.load(STATE_PATH), Date.now(), cfg.reuse_hours);
   const brief = argv.brief ? JSON.parse(fs.readFileSync(argv.brief, 'utf8')) : {};
   const image = path.resolve(argv.image || argv._[1]);
+  const stopped = movie.stop();
+  if (stopped) log('took the movie off the desktop: ' + stopped.file);
   const unique = wallpaper.show(image, cfg.out_dir, cfg.refresh);
   store.remember(state, {
     at: Date.now(),
@@ -209,6 +238,8 @@ async function cmdStatus(cfg) {
   console.log('last run   : ' + (last ? new Date(last.at).toLocaleString() + '  ' + last.topic + '  ' + (last.model || '') : '(never)'));
   console.log('pool       : ' + state.pool.length + ' wallpaper(s) still reusable');
   console.log('props      : ' + (state.props.map((p) => p.name + ' x' + p.count).join(', ') || '(none yet)'));
+  const playing = movie.running();
+  console.log('movie      : ' + (playing ? playing.file + ' (pid ' + playing.pid + ')' : '(none)'));
   console.log('desktop    : ' + wallpaper.current());
 }
 
@@ -224,6 +255,9 @@ function usage() {
     '  prompt [--brief FILE]    the exact text sent to the image model',
     '  render [--brief FILE]    draw it with the configured provider (standalone)',
     '  show --image FILE        put an image on every desktop and record it',
+    '  motion [--seconds N]     the text that turns the picture on screen into a loop',
+    '  loop --video FILE        play a movie at the desktop layer, under the icons',
+    '  loop --stop              take the movie off the desktop',
     '  tick                     gather, brief, draw, show (standalone)',
     '  status                   history, reuse pool, props ledger'
   ].join('\n'));

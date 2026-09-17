@@ -31,6 +31,28 @@ something from the pool, or use `preset.idle` for a quiet one.
 Resolve the drawn image to a real local path first. Media tools that return a blob
 URL usually have a way to resolve it (`resolve_local_path` in Cindy).
 
+## Motion
+
+To turn the picture that is on the desktop into a loop:
+
+```sh
+node bin/zoe.mjs motion                 # the text for the video model
+node bin/zoe.mjs loop --video FILE      # play it, desktop layer, under the icons
+node bin/zoe.mjs loop --stop            # take it off again
+```
+
+Submit it as image-to-video, the still as the first frame:
+
+```json
+{ "content": [
+  { "type": "text", "text": "<the text from zoe motion>" },
+  { "type": "image_url", "image_url": { "url": "cindy-media://blobs/....jpg" }, "role": "first_frame" }
+], "generate_audio": false }
+```
+
+The first frame must be the managed address the still was generated at, not a local
+path; a path is rejected upstream. If you only have the file, draw the still again.
+
 ## Hourly job
 
 A schedule that runs this every hour, in a long-lived session, one working
