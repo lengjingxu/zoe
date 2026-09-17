@@ -115,8 +115,10 @@ first frame. The first frame has to be the managed `cindy-media://` address the 
 came back at, not a local path — the upstream rejects paths. Then:
 
 ```sh
-node bin/zoe.mjs loop --video /path/to/clip.mp4
+node bin/zoe.mjs loop --video cindy-media://blobs/....mp4
 ```
+
+A path or a managed address, the same as `show`.
 
 ## 6. Put it up
 
