@@ -27,6 +27,7 @@ gather [--hours N] [--json]        data only: what happened, plus the long memor
 room [--write FILE]                the keepsakes, in and out
 prompt [--write FILE] [--note ID]  the text in use, and the only door a new one uses
 show --image F [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
+last                               the last picture, as the reference for this hour
 reuse / motion / loop / status
 ```
 
@@ -44,6 +45,22 @@ start to finish, and report one line at the end.
 The agent needs a media tool that can draw an image, and one that can turn an image
 into a short video if the hour earns motion. Resolve a drawn image to a real local path
 before `zoe show` (`resolve_local_path` in Cindy).
+
+## Drawing
+
+How to draw is not up to the agent either: the model comes from `zoe models`, the
+address to draw from comes from `zoe last`, and the text comes from `zoe prompt`.
+
+```json
+// image.edit, whenever zoe last printed an address: the picture on the desktop is the
+// reference, so the room comes back as it was and only the hour changes
+{ "prompt": "<the prompt>", "image": "cindy-media://blobs/....jpg", "aspect_ratio": "3:2" }
+
+// image.generate, only when there is no address yet
+{ "prompt": "<the prompt>", "aspect_ratio": "3:2" }
+```
+
+Then hand the address that came back to `zoe show --image`.
 
 ## Motion
 
