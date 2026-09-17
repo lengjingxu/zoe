@@ -11,6 +11,7 @@ import * as wallpaper from '../src/wallpaper.mjs';
 import * as store from '../src/state.mjs';
 import * as movie from '../src/movie.mjs';
 import { animate } from '../src/motion.mjs';
+import * as proxy from '../src/proxy.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 const log = (...parts) => console.log('[zoe]', ...parts);
@@ -41,6 +42,10 @@ async function main() {
       return cmdShow(cfg);
     case 'last':
       return cmdLast();
+    case 'draw':
+      return cmdDraw(cfg);
+    case 'film':
+      return cmdFilm(cfg);
     case 'reuse':
       return cmdReuse(cfg);
     case 'motion':
@@ -65,13 +70,9 @@ async function cmdDetect() {
 }
 
 async function cmdModels(cfg) {
-  if (argv.import) {
-    const raw = argv.import === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(argv.import, 'utf8');
-    return log('model list saved to ' + modelList.importModels(JSON.parse(raw)));
-  }
-  const cache = modelList.cached();
   console.log('priority  : ' + cfg.models.priority.join('  ->  '));
-  console.log('source    : ' + (cache ? 'client list from ' + new Date(cache.at).toLocaleString() : 'config providers (no client list imported yet)'));
+  console.log('video     : ' + (cfg.models.video_priority || []).join('  ->  '));
+  console.log('providers : ' + (cfg.providers || []).map((p) => p.id + ' (' + (p.models || []).length + ' models)').join(', ') || '(none in the config)');
   try {
     const pick = modelList.resolve(cfg);
     console.log('available : ' + pick.available.join(', '));
@@ -145,13 +146,12 @@ async function cmdShow(cfg) {
   const now = Date.now();
   const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
   const given = argv.image || argv._[1];
-  const image = path.resolve(localPath(given));
+  const image = path.resolve(given);
   const unique = putOnDesktop(cfg, image);
   store.remember(state, {
     at: now,
     image: unique,
     topic: argv.topic || path.basename(image),
-    ref: isManaged(given) ? given : null,
     scene: argv.scene || null,
     interaction: argv.pose || null,
     note: argv.note || null,
@@ -169,9 +169,8 @@ async function cmdReuse(cfg) {
   const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
   if (!state.pool.length) return log('the pool is empty, nothing to bring back');
   const image = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
-  const ref = state.pool.find((p) => p.image === image)?.ref || null;
   const unique = putOnDesktop(cfg, image, now);
-  store.remember(state, { at: now, image: unique, ref, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
+  store.remember(state, { at: now, image: unique, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
   store.save(STATE_PATH, state);
   log('brought back ' + unique);
 }
@@ -188,7 +187,7 @@ async function cmdLoop(cfg) {
     const was = movie.stop();
     return log(was ? 'took the movie off the desktop: ' + was.file : 'no movie was playing');
   }
-  const file = localPath(argv.video || argv._[1]);
+  const file = argv.video || argv._[1];
   if (!file) {
     const now = movie.running();
     return log(now ? 'playing ' + now.file + ' (pid ' + now.pid + ')' : 'nothing playing on the desktop');
@@ -227,30 +226,57 @@ function noteLine(preset, id) {
   return found.line;
 }
 
-// A managed address, or nothing when the argument was a plain path.
-function isManaged(from) {
-  return String(from || '').startsWith('cindy-media://');
+// The hour, drawn and filmed by the proxy the config names, so nothing else sits between
+// the prompt and the desktop.
+async function cmdDraw(cfg) {
+  const prompt = (argv.prompt ? readInput(argv.prompt) : fs.readFileSync(PROMPT_PATH, 'utf8')).trim();
+  const ref = refFor(argv.ref);
+  const out = argv.out || path.join(os.tmpdir(), 'zoe-' + Date.now() + '.jpg');
+  const drawn = await proxy.draw(cfg, { prompt, ref });
+  fs.writeFileSync(out, drawn.buffer);
+  log('drew with ' + drawn.model + (drawn.ref ? ' from ' + drawn.ref : ' from the prompt alone') + ' -> ' + out);
+  console.log(out);
 }
 
-// What the next hour draws from: the address the last picture came back at. Handing it
-// back as a reference is how the room stays the same room instead of being redrawn.
+async function cmdFilm(cfg) {
+  const preset = loadPreset(cfg.preset);
+  const prompt = argv.prompt ? readInput(argv.prompt).trim() : animate({ preset });
+  const firstFrame = !argv.firstFrame || argv.firstFrame === 'last' ? lastPicture() : argv.firstFrame;
+  const out = argv.out || path.join(cfg.out_dir, 'loop_' + Date.now() + '.mp4');
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  const clip = await proxy.film(cfg, {
+    prompt,
+    firstFrame,
+    seconds: num(argv.seconds, null),
+    resolution: typeof argv.resolution === 'string' ? argv.resolution : null
+  });
+  fs.writeFileSync(out, clip.buffer);
+  log('filmed with ' + clip.model + ' for ' + clip.seconds + 's -> ' + out);
+  console.log(out);
+}
+
+// Where this hour comes from: the picture the last hour left, unless told otherwise.
+function refFor(want) {
+  if (want === 'none') return null;
+  if (want && want !== 'last') return want;
+  return lastPicture();
+}
+
+// The picture the last hour left on the desktop. The next hour is drawn from it.
+function lastPicture() {
+  const state = store.load(STATE_PATH);
+  const run = [...state.history].reverse().find((h) => h.image && fs.existsSync(h.image));
+  if (!run) throw new Error('no picture from a previous hour is still on disk: this is the first one, pass --ref none');
+  return run.image;
+}
+
+// The file the next hour draws from. Handing it back as the reference is how the room
+// stays the same room instead of being drawn again from nothing.
 async function cmdLast() {
   const state = store.load(STATE_PATH);
-  const run = [...state.history].reverse().find((h) => h.ref);
-  if (!run) return log('no picture has come back at a managed address yet, there is nothing to draw from');
-  console.log(run.ref);
-}
-
-// The media tools hand back a managed address, and the bytes are already on this disk
-// under the client's own media folder: take the file from there.
-function localPath(from) {
-  const mediaRoot = path.join(os.homedir(), 'Library', 'Application Support', 'Cindy', 'cindy-media');
-  const hit = /^cindy-media:\/\/(.+)$/.exec(from || '');
-  if (!hit) return from;
-  const name = hit[1].replace(/^blobs\//, '');
-  const file = path.join(mediaRoot, 'blobs', name.slice(0, 2), name);
-  if (!fs.existsSync(file)) throw new Error('no file behind ' + from + ', expected ' + file);
-  return file;
+  const run = [...state.history].reverse().find((h) => h.image && fs.existsSync(h.image));
+  if (!run) return log('nothing from a previous hour is still on disk, so there is nothing to draw from');
+  console.log(run.image);
 }
 
 function readInput(from) {
@@ -263,18 +289,22 @@ function usage() {
     '',
     '  init                     write a default config to ~/.zoe/config.json',
     '  detect                   which clients were found on this machine, and where',
-    '  models [--import -]      the model priority list, and which one wins',
+    '  models                   the model priority list, and which one wins',
     '  gather [--hours N] [--json]   what this hour looks like, from the transcripts',
     '  room                     what stands in the room, and the memory it could take',
     '  room --write FILE        add or retire keepsakes (one new per run, room of six)',
     '  prompt                   the prompt in use, the one the last hour drew with',
     '  prompt --write FILE      hand over a new one: checked, then stored',
     '      [--note ID]          the note id from the preset, when she holds paper',
-    '  last                     the address of the last picture, the one to draw from',
-    '  show --image FILE|ADDR   put an image on every desktop and record the hour',
+    '  last                     the picture the last hour left, the one to draw from',
+    '  draw [--ref FILE|none]   draw this hour through the gateway, print the file it landed in',
+    '      [--prompt FILE] [--out FILE]',
+    '  film [--first-frame F]   turn that still into a loop, print the file it landed in',
+    '      [--prompt FILE] [--seconds N] [--out FILE]',
+    '  show --image FILE        put an image on every desktop and record the hour',
     '      [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]',
     '  reuse                    bring a wallpaper back from the pool without drawing',
-    '  motion [--seconds N]     the text that turns the picture on screen into a loop',
+    '  motion                   the text that turns the picture on screen into a loop',
     '  loop --video FILE        play a movie at the desktop layer, under the icons',
     '  loop --stop              take the movie off the desktop',
     '  status [--hours N]       what the last hours drew, the pool, the desktop'

@@ -10,9 +10,9 @@ inventory, checks a prompt and puts a file on the desktop. What a picture is abo
 decided here, once an hour, from the data. Nothing under `src/` writes a prompt.
 
 ```
-gather ──▶ room ────▶ prompt ───▶ image ───▶ (motion) ───▶ show
- what      what the    this         draw       let it       put it up
- happened  room holds  hour's text  it         move         and remember
+gather ──▶ room ──▶ prompt ──▶ draw ──▶ show ──▶ film ──▶  loop
+ what      what the this        draws    puts     turns    plays it
+ happened  room holds hour's text  it    it up    it into  after show
 ```
 
 Run it from the repo: `node bin/zoe.mjs <command>`. Read `README.md` for what the
@@ -101,57 +101,63 @@ Paper is one mode of five. Two hours in a row should not speak the same way.
 ## 4. Draw it
 
 ```sh
-node bin/zoe.mjs models   # the one model you may use
-node bin/zoe.mjs last     # the address the last picture came back at
+node bin/zoe.mjs models   # the priority list, and which model it picks
+node bin/zoe.mjs draw     # draws it, and prints the file it landed in
 ```
 
-Aspect ratio 3:2, with the model `zoe models` reports and no other.
+The shape is 3:2 and the model is the one `zoe models` reports. There is no second model
+and no quiet step down: if the proxy refuses, the command fails and says which model it
+wanted and what came back.
 
-When `zoe last` prints an address, draw with `image.edit` and hand that address
-in as the reference image. The picture already on the desktop is the reference, so the
-room, the hand, the palette and where everything stands come back as they were, and only
-the things the prompt names move: the view outside, what stands in the room, and what she
-is doing. Write the prompt that way, naming what stays and what changes, and keep the
-changes small — an hour apart is an hour, not a season.
-
-When it prints nothing (the first hour ever, or a picture that never came back at a
-managed address), generate from the prompt alone.
-
-The exact body is in `AGENTS.md`. If the model fails, say so and stop: a run that
-quietly drew with a different model is worse than a run that drew nothing.
-
-## 5. Let it move
-
-A still that has just landed can become a loop. `node bin/zoe.mjs motion`
-prints the text for the video model; submit it as image-to-video with the still as the
-first frame, the managed `cindy-media://` address the still came back at, not a local
-path. Then:
+`draw` reads the prompt out of `~/.zoe/prompt.txt` and draws from the picture the last
+hour left on the desktop. That picture is the reference, so the room, the hand, the
+palette and where everything stands come back as they were, and only what the prompt
+names moves: the view outside, what stands in the room, what she is doing. Write the
+prompt that way, naming what stays and what changes, and keep the changes small — an
+hour apart is an hour, not a season.
 
 ```sh
-node bin/zoe.mjs loop --video cindy-media://blobs/....mp4
+node bin/zoe.mjs draw --ref none      # the first hour ever: nothing to come from
+node bin/zoe.mjs draw --ref FILE      # from some other picture
+node bin/zoe.mjs draw --prompt FILE   # some other text, for a one-off
 ```
 
-A path or a managed address, the same as `show`.
+Read the file it prints and hand it straight to `show`. The log line names the model that
+actually drew it, which is the `--model` for the record.
 
-That text asks for the smallest motion there is — breathing, blinking, hair and cloth
-drifting, the light easing a shade — and for no action at all: nobody stands, turns,
-crosses their legs or lifts a cup, and nothing new appears. Keep it that way. One
-recognizable action is what makes a loop feel like a loop.
-
-## 6. Put it up
+## 5. Put it up
 
 ```sh
-node bin/zoe.mjs show --image cindy-media://blobs/....jpg \
-  --topic "what the hour was about" --scene window-rain --pose B-care \
-  --note meal --model xai/grok-imagine-image-2.0
+node bin/zoe.mjs show --image /tmp/zoe-1789658567040.jpg \
+  --topic "what the hour was about" --scene city-night --pose B-care \
+  --note meal --model grok-imagine-image-2.0
 ```
 
---image takes either a path or the managed address the media tool handed back; for a
-managed address zoe reads the bytes out of the client's own media folder.
+The picture is a file on this disk, which is what `draw` and `film` print.
 
 `show` sets every desktop, records the hour, ages the room, and stops any movie that was
 playing, because the desktop holds one thing at a time. Pass `--note` and the scene and
 pose ids you actually used: the next hour reads them back from `zoe status`.
+
+## 6. Let it move
+
+A still that has just landed can become a loop:
+
+```sh
+node bin/zoe.mjs film                    # the still it just drew, moving
+node bin/zoe.mjs loop --video ~/Pictures/zoe/loop_1789660476140.mp4
+```
+
+`film` takes that still as the first frame, sends the loop text of the preset with it to
+the video model on the same proxy, and prints the clip. `loop` plays the clip on the
+desktop, under the icons. The clip lands next to the wallpapers, as `loop_<timestamp>.mp4`.
+`zoe motion` prints that text on its own if you want to read it, and `film --prompt FILE`
+sends your own instead.
+
+The text asks for the smallest motion there is — breathing, blinking, hair and cloth
+drifting, the light easing a shade — and for no action at all: nobody stands, turns,
+crosses their legs or lifts a cup, and nothing new appears. Keep it that way. One
+recognizable action is what makes a loop feel like a loop.
 
 ## An empty hour
 
