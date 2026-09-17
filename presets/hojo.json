@@ -1,0 +1,80 @@
+{
+  "name": "hojo",
+  "style": "Hand-drawn 1980s-1990s Japanese cel animation in the style of Tsukasa Hojo (City Hunter, Cat's Eye). Crisp ink line art, flat cel shading, warm dusty 35mm film grain, painted background art with visible brushwork, retro urban realism. Absolutely no 3D render, no CGI, no plastic skin, no airbrushed glossy finish.",
+  "character": "an adult East Asian woman in her late twenties, confident and self-possessed, sleek short straight hair with a strong purple tint, off-shoulder knit top, elegant and a little seductive but always composed. She has a private silly streak: unfinished selfies, getting tangled in cables, a pole jammed in a doorway, an out-of-focus grimace at a screen.",
+  "layout": "Extreme long shot, wide establishing composition. The woman and everything she touches sit in the bottom-right corner and take up only 15% of the frame. The left, top and centre 85% stay open and uncluttered, showing the view through the window and the reflective floor, so desktop icons have somewhere to live. Nothing may cross the open area.",
+  "negative": [
+    "3D render",
+    "CGI",
+    "plastic skin",
+    "oversaturated",
+    "cluttered foreground",
+    "text",
+    "watermark",
+    "logo",
+    "user interface",
+    "screenshot",
+    "dashboard"
+  ],
+  "scenes": [
+    {
+      "id": "city-night",
+      "desc": "a wet downtown skyline at night seen from a high floor, neon bleeding into rain on the glass, a few lit windows still on"
+    },
+    {
+      "id": "city-dusk",
+      "desc": "a river city at dusk, low sun on the water, towers turning on one by one"
+    },
+    {
+      "id": "bamboo-rain",
+      "desc": "deep green bamboo forest in fine rain, mist drifting between the stalks, water running down the glass"
+    },
+    {
+      "id": "sea-of-clouds",
+      "desc": "an ocean of cloud below the window, peaks poking through, light coming up sideways"
+    },
+    {
+      "id": "coast-road",
+      "desc": "a coastal road at dusk, a long flat horizon, waves breaking white far below"
+    },
+    {
+      "id": "snow-valley",
+      "desc": "a snow valley at blue hour, bare larch slopes, one warm window lit across the way"
+    },
+    {
+      "id": "shrine-autumn",
+      "desc": "stone steps and maple red on a hill, seen far off through the window frame, lanterns not yet lit"
+    },
+    {
+      "id": "gobi-sunset",
+      "desc": "a dry plain burning orange at the end of the day, wind moving dust across an empty road"
+    }
+  ],
+  "interactions": [
+    {
+      "id": "A-scene",
+      "desc": "working in the same frame, hunched over a terminal or a board, sleeves pushed up, sharing the shift with the viewer"
+    },
+    {
+      "id": "B-care",
+      "desc": "chin on both hands, looking up from the screen toward the viewer, a mug of coffee still steaming beside her"
+    },
+    {
+      "id": "B-stretch",
+      "desc": "leaning back from the desk with both arms up in a long stretch, eyes half shut, having just finished something"
+    },
+    {
+      "id": "B-confused",
+      "desc": "tilted head, staring at a wall of logs with an honest look of confusion, mouth slightly open"
+    },
+    {
+      "id": "A-latenight",
+      "desc": "asleep sitting up, cheek on her own arm, one monitor still glowing, pen still in hand"
+    },
+    {
+      "id": "B-cheer",
+      "desc": "fist raised in a small quiet victory, the other hand still on the keyboard"
+    }
+  ],
+  "idle": "alone at the window, stretching after a long day, watching the view instead of the screen"
+}

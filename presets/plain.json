@@ -1,0 +1,47 @@
+{
+  "name": "plain",
+  "style": "Hand-drawn illustration, flat shapes, soft limited palette, quiet and clean. No 3D render, no CGI.",
+  "character": "a composed adult person, seen from far away, at their desk",
+  "layout": "Extreme long shot. The person occupies only the bottom-right corner, about 15% of the frame. The other 85% stays open and uncluttered for desktop icons.",
+  "negative": [
+    "3D render",
+    "CGI",
+    "text",
+    "watermark",
+    "user interface",
+    "screenshot"
+  ],
+  "scenes": [
+    {
+      "id": "window-morning",
+      "desc": "a bright morning through a large window, low sun across the floor"
+    },
+    {
+      "id": "window-rain",
+      "desc": "rain running down the glass, everything outside soft and grey"
+    },
+    {
+      "id": "window-night",
+      "desc": "a city at night far below, small lights, quiet"
+    },
+    {
+      "id": "window-hills",
+      "desc": "low hills fading into haze, nothing urgent out there"
+    }
+  ],
+  "interactions": [
+    {
+      "id": "A-scene",
+      "desc": "working at the desk in the same frame"
+    },
+    {
+      "id": "B-care",
+      "desc": "looking up from the screen, chin on hand"
+    },
+    {
+      "id": "B-stretch",
+      "desc": "leaning back in a long stretch"
+    }
+  ],
+  "idle": "standing at the window, doing nothing in particular"
+}

@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+*.log
+*.jpg
+*.jpeg
+*.png
+*.mp4
+state.json
+brief.json
+models.json
+tmp-*
+

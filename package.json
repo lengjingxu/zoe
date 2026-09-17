@@ -1,0 +1,12 @@
+{
+  "name": "zoe",
+  "version": "0.1.0",
+  "description": "A companion that talks to you through your desktop wallpaper. Reads what you are actually working on, right now, and answers it with a picture.",
+  "type": "module",
+  "bin": { "zoe": "./bin/zoe.mjs" },
+  "engines": { "node": ">=20.11" },
+  "scripts": { "test": "node --test" },
+  "files": ["bin", "src", "presets", "README.md", "AGENTS.md"],
+  "keywords": ["wallpaper", "companion", "codex", "claude-code", "macos"],
+  "license": "MIT"
+}
