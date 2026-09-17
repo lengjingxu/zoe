@@ -40,6 +40,8 @@ async function main() {
       return cmdRender(cfg);
     case 'show':
       return cmdShow(cfg);
+    case 'reuse':
+      return cmdReuse(cfg);
     case 'motion':
       return cmdMotion(cfg);
     case 'loop':
@@ -111,7 +113,11 @@ async function cmdBrief(cfg) {
 
 async function cmdPrompt(cfg) {
   const preset = loadPreset(cfg.preset);
-  const brief = JSON.parse(fs.readFileSync(argv.brief || briefFile, 'utf8'));
+  let brief = JSON.parse(fs.readFileSync(argv.brief || briefFile, 'utf8'));
+  if (brief.idle) {
+    if (!argv.idle) throw new Error('the brief is idle, there is nothing new to answer. Pass --idle to draw a quiet one anyway.');
+    brief = idleBrief(cfg, preset, store.load(STATE_PATH), Date.now());
+  }
   console.log(compose({ brief, preset }));
 }
 
@@ -149,13 +155,19 @@ async function cmdRender(cfg) {
   log('image written to ' + file);
 }
 
+// The desktop holds one thing at a time, and a loop must never outlive the
+// picture it was made from.
+function putOnDesktop(cfg, image, tag) {
+  const stopped = movie.stop();
+  if (stopped) log('took the movie off the desktop');
+  return wallpaper.show(image, cfg.out_dir, cfg.refresh, tag);
+}
+
 async function cmdShow(cfg) {
   const state = store.prune(store.load(STATE_PATH), Date.now(), cfg.reuse_hours);
   const brief = argv.brief ? JSON.parse(fs.readFileSync(argv.brief, 'utf8')) : {};
   const image = path.resolve(argv.image || argv._[1]);
-  const stopped = movie.stop();
-  if (stopped) log('took the movie off the desktop: ' + stopped.file);
-  const unique = wallpaper.show(image, cfg.out_dir, cfg.refresh);
+  const unique = putOnDesktop(cfg, image);
   store.remember(state, {
     at: Date.now(),
     image: unique,
@@ -170,6 +182,19 @@ async function cmdShow(cfg) {
   log('desktop set to ' + unique + (gone.length ? ', pruned ' + gone.length + ' old file(s)' : ''));
 }
 
+// An empty hour should not cost a picture: bring one back from the pool. A
+// missing pool is reported, never invented around.
+async function cmdReuse(cfg) {
+  const now = Date.now();
+  const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
+  if (!state.pool.length) return log('the pool is empty, nothing to bring back');
+  const image = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
+  const unique = putOnDesktop(cfg, image, now);
+  store.remember(state, { at: now, image: unique, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
+  store.save(STATE_PATH, state);
+  log('brought back ' + unique);
+}
+
 async function cmdTick(cfg) {
   const preset = loadPreset(cfg.preset);
   const now = Date.now();
@@ -178,11 +203,8 @@ async function cmdTick(cfg) {
   let brief = build({ collected, preset, state, config: cfg });
 
   if (brief.idle && state.pool.length) {
-    const image = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
-    const unique = wallpaper.show(image, cfg.out_dir, cfg.refresh, now);
-    store.remember(state, { at: now, image: unique, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
     store.save(STATE_PATH, state);
-    return log('nothing new to answer, brought back ' + image);
+    return cmdReuse(cfg);
   }
   if (brief.idle) {
     brief = idleBrief(cfg, preset, state, now);
@@ -255,6 +277,8 @@ function usage() {
     '  prompt [--brief FILE]    the exact text sent to the image model',
     '  render [--brief FILE]    draw it with the configured provider (standalone)',
     '  show --image FILE        put an image on every desktop and record it',
+    '  prompt --idle            draw the quiet one, for an hour with nothing in it',
+    '  reuse                    bring a wallpaper back from the pool without drawing',
     '  motion [--seconds N]     the text that turns the picture on screen into a loop',
     '  loop --video FILE        play a movie at the desktop layer, under the icons',
     '  loop --stop              take the movie off the desktop',

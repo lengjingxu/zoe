@@ -55,21 +55,27 @@ path; a path is rejected upstream. If you only have the file, draw the still aga
 
 ## Hourly job
 
-A schedule that runs this every hour, in a long-lived session, one working
-directory, no worktree:
+A schedule that runs this every hour, in a long-lived session, working directory
+this repo, no worktree:
 
 ```
 You are drawing the hourly wallpaper for this machine.
 
 1. node bin/zoe.mjs brief --hours 1
-2. If it is idle: node bin/zoe.mjs tick handles reuse. Do not invent a topic.
-3. node bin/zoe.mjs prompt
-4. Draw that prompt with the media tool, at the model from node bin/zoe.mjs models.
-   Aspect ratio 3:2.
-5. Resolve the result to a local path, then:
-   node bin/zoe.mjs show --image <path> --model <model>
-6. Report one line: the topic, the model, and the file that landed.
+2. If it is idle, do not invent a topic:
+     node bin/zoe.mjs reuse          bring one back from the pool, costs nothing
+     if the pool is empty: node bin/zoe.mjs prompt --idle, and draw that
+3. node bin/zoe.mjs prompt           the exact text for the image model
+4. node bin/zoe.mjs models           the model and provider to use. Do not pick another.
+5. Draw that prompt with your media tool at aspect ratio 3:2, resolve the result to a
+   local path, then: node bin/zoe.mjs show --image <path> --model <model id>
+6. If the hour had real work in it (step 2 was not idle), let it move, as described
+   under Motion above, then: node bin/zoe.mjs loop --video <path>
+7. Report one line: the topic, the model, the file that landed, and whether it moves.
 ```
+
+Never fall back to another model. If the one `zoe models` picked is unavailable, stop and say
+so; a run that quietly drew with something else is worse than a failed run.
 
 Keep the prompt out of the schedule. Everything that decides what to draw lives in
 the repo, where it can be tested.
