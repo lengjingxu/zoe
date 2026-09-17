@@ -183,7 +183,7 @@ async function cmdLoop(cfg) {
     const was = movie.stop();
     return log(was ? 'took the movie off the desktop: ' + was.file : 'no movie was playing');
   }
-  const file = argv.video || argv._[1];
+  const file = localPath(argv.video || argv._[1]);
   if (!file) {
     const now = movie.running();
     return log(now ? 'playing ' + now.file + ' (pid ' + now.pid + ')' : 'nothing playing on the desktop');

@@ -72,7 +72,7 @@ zoe models [--import -]           # the model priority list, and which one wins
 zoe show --image FILE|ADDR [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
 zoe reuse                         # bring a wallpaper back from the pool, costs nothing
 zoe motion                        # the text that turns the picture into a loop
-zoe loop --video FILE             # play a movie on the desktop layer instead of a still
+zoe loop --video FILE|ADDR       play a movie on the desktop layer instead of a still
 zoe status                        # the last hours, the pool, the desktop
 ```
 
