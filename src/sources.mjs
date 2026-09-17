@@ -178,6 +178,13 @@ function ccItems(homes, from) {
   return items;
 }
 
+// The long memory on its own, for the times zoe asks what is remembered rather than
+// what was said this hour.
+export function longMemory(found) {
+  const clients = found || detect();
+  return memoryItems(clients.memoryDirs || []);
+}
+
 // ------------------------------------------------------------------- long memory
 
 function memoryItems(dirs) {

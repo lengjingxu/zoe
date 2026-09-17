@@ -37,7 +37,6 @@ test('the reuse pool drops what expired or went missing', () => {
   fs.writeFileSync(keep, 'x');
   const state = {
     history: [],
-    props: [],
     pool: [
       { image: keep, expires_at: 2000 },
       { image: path.join(dir, 'gone.jpg'), expires_at: 2000 },
@@ -48,21 +47,19 @@ test('the reuse pool drops what expired or went missing', () => {
   assert.deepEqual(state.pool.map((p) => p.image), [keep]);
 });
 
-test('remembering a run keeps the desk props for next time', () => {
-  const state = { history: [], props: [], pool: [] };
-  remember(state, { at: 100, image: '/x/a.jpg', topic: 't', props: ['145x157x236'] }, { now: 100, reuseHours: 6 });
-  remember(state, { at: 200, image: '/x/b.jpg', topic: 't', props: ['145x157x236'] }, { now: 200, reuseHours: 6 });
-  assert.equal(state.history.length, 2);
-  assert.equal(state.pool.length, 2);
+test('remembering a run keeps it in the pool until it expires', () => {
+  const state = { history: [], pool: [] };
+  remember(state, { at: 100, image: '/x/a.jpg', topic: 't' }, { now: 100, reuseHours: 6 });
+  assert.equal(state.history.length, 1);
+  assert.equal(state.pool.length, 1);
   assert.equal(state.pool[0].expires_at, 100 + 6 * 3600e3);
-  assert.deepEqual(state.props, [{ name: '145x157x236', first: 100, last: 200, count: 2 }]);
 });
 
 test('state on disk survives a round trip and refuses to be clobbered', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zoe-state-'));
   const file = path.join(dir, 'state.json');
-  assert.deepEqual(load(file), { version: 1, history: [], props: [], pool: [] });
-  save(file, { version: 1, history: [{ at: 1 }], props: [], pool: [] });
+  assert.deepEqual(load(file), { version: 1, history: [], pool: [] });
+  save(file, { version: 1, history: [{ at: 1 }], pool: [] });
   assert.equal(load(file).history.length, 1);
   fs.writeFileSync(file, '{ truncated');
   assert.throws(() => load(file), /refusing to overwrite/);
