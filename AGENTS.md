@@ -74,6 +74,10 @@ You are drawing the hourly wallpaper for this machine.
 7. Report one line: the topic, the model, the file that landed, and whether it moves.
 ```
 
+Some briefs carry a `note`: one line she holds up on paper. The prompt already
+asks for it and the note picture brings its own layout, so there is nothing extra to do
+beyond drawing it well.
+
 Never fall back to another model. If the one `zoe models` picked is unavailable, stop and say
 so; a run that quietly drew with something else is worse than a failed run.
 
