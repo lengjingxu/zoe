@@ -52,13 +52,14 @@ async function get(url, key) {
 
 // The picture that ends up on the desktop: a fresh one from the prompt, or one edited
 // from the picture already there, which keeps the room and the hand the way they were.
-export async function draw(cfg, { prompt, ref, size = '1536x1024' }) {
+export async function draw(cfg, { prompt, ref, size }) {
   if (!prompt?.trim()) throw new Error('nothing to draw: the prompt is empty');
   const model = drawModel(cfg);
   const { base, key } = endpoint(cfg, model.id);
+  const shape = size || cfg.size || '1792x1024';
 
   if (!ref) {
-    const out = await send(base + '/images/generations', key, { model: model.id, prompt, size, n: 1, quality: 'high', output_format: 'jpg' });
+    const out = await send(base + '/images/generations', key, { model: model.id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
     return { buffer: await bytes(out, base, key), model: model.id };
   }
   if (!fs.existsSync(ref)) throw new Error('no picture at ' + ref + ' to draw from');
@@ -66,7 +67,7 @@ export async function draw(cfg, { prompt, ref, size = '1536x1024' }) {
   const form = new FormData();
   form.set('model', model.id);
   form.set('prompt', prompt);
-  form.set('size', size);
+  form.set('size', shape);
   form.set('n', '1');
   form.set('image', new Blob([fs.readFileSync(ref)], { type: 'image/jpeg' }), path.basename(ref));
   const out = await send(base + '/images/edits', key, null, form);

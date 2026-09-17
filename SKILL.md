@@ -95,20 +95,37 @@ Paper is one mode of five. Two hours in a row should not speak the same way.
   hour, the end of something shipped, a long night). Use the id from `preset.notes`.
 - **A keepsake arriving.** A memory that becomes an object in the room, in this picture.
 - **A keepsake leaving.** Something old goes; the next prompt stops naming it.
-- **The pose.** One of `preset.interactions`, chosen for this hour: what she is doing
-  while you work.
-- **The view and the light.** One of `preset.scenes`, or the hour's own weather.
+- **What she is doing.** Invented for this hour, out of the work itself. There is no list.
+- **The view and the light.** One of `preset.scenes`, a place out of the memory or the hour,
+  or the weather on its own terms.
 
 ### What she is doing
 
-The pose is this hour, drawn small. Read `items` and `memory` before choosing, and name
-the hour to yourself in one word first: deep in one thing, spread across several, stuck,
-or empty. Then take the `preset.interactions` entry that means the same thing, and put one
-thing from the hour into the same sentence: the cable being routed through the wall, the
-numbers being cut down, the last test going green. Two hours in a row should not look like
-the same hour, and a pose that would fit any hour at all is the one to avoid.
+There is no list of poses and no rotation to stay off. Read `items` and `memory` first, name
+the hour to yourself in a word - deep in one thing, spread across several, stuck, empty -
+then invent the one thing she is doing that says the same thing: leaning into the screen
+with the cursor stalled on the same line, holding two cables apart and reading the one in
+her other hand, pushing back from a finished board with her eyes still on it. Put one real
+object from the hour into the same sentence. A pose that would fit any hour is the one to
+avoid, and two hours in a row should not look like the same hour.
+
+After eight in the evening, work the `evening` line of the preset in as well: the day is off, and
+the picture knows it.
 
 The keepsakes carry the memory. The desk carries this hour.
+
+### The window
+
+The view is most of the picture, so it carries the mood. Three ways to fill it, and the
+hour picks:
+
+- **The two cities.** `shanghai-lujiazui` or `hangzhou-river`: the working week seen from a
+  high floor, wet streets below.
+- **Somewhere else.** A place that turned up in `memory` or in this hour's `items` - the trip
+  being planned, the city being discussed, the coast someone wants back. Name it in the
+  view paragraph; it does not have to be in `preset.scenes`.
+- **Weather on its own.** `bamboo-rain`, `sea-of-clouds`, rain on the glass, mist in the valley:
+  no city and no place, just the hour's own air.
 
 ## 4. Draw it
 
@@ -117,16 +134,16 @@ node bin/zoe.mjs models   # the priority list, and which model it picks
 node bin/zoe.mjs draw     # draws it, and prints the file it landed in
 ```
 
-The shape is 3:2 and the model is the one `zoe models` reports. There is no second model
-and no quiet step down: if the proxy refuses, the command fails and says which model it
-wanted and what came back.
+The shape is 16:9 - `size` in the config, 1792x1024, which the gateway hands back as 1280x720 -
+and the model is the one `zoe models` reports. There is no second model and no quiet step
+down: if the gateway refuses, the command fails and says which model it wanted and what
+came back.
 
-`draw` reads the prompt out of `~/.zoe/prompt.txt` and draws from the picture the last
-hour left on the desktop. That picture is the reference, so the room, the hand, the
-palette and where everything stands come back as they were, and only what the prompt
-names moves: the view outside, what stands in the room, what she is doing. Write the
-prompt that way, naming what stays and what changes, and keep the changes small — an
-hour apart is an hour, not a season.
+It reads the prompt out of `~/.zoe/prompt.txt` and draws from the picture the last hour left on the
+desktop. That picture is the reference, so the room, the hand, the palette and where
+everything stands come back as they were, and only what the prompt names moves: the view
+outside, what stands in the room, what she is doing. Write the prompt that way, naming what
+stays and what changes, and keep the changes small - an hour apart is an hour, not a season.
 
 ```sh
 node bin/zoe.mjs draw --ref none      # the first hour ever: nothing to come from
@@ -141,15 +158,16 @@ actually drew it, which is the `--model` for the record.
 
 ```sh
 node bin/zoe.mjs show --image /tmp/zoe-1789658567040.jpg \
-  --topic "what the hour was about" --scene city-night --pose B-care \
+  --topic "what the hour was about" --scene shanghai-lujiazui \
+  --pose "two cables held apart, reading the one in her other hand" \
   --note meal --model grok-imagine-image-2.0
 ```
 
 The picture is a file on this disk, which is what `draw` and `film` print.
 
 `show` sets every desktop, records the hour, ages the room, and stops any movie that was
-playing, because the desktop holds one thing at a time. Pass `--note` and the scene and
-pose ids you actually used: the next hour reads them back from `zoe status`.
+playing, because the desktop holds one thing at a time. Pass `--note`, the scene id you used, and a
+few words for what she was doing: the next hour reads them back from `zoe status`.
 
 ## 6. Let it move
 

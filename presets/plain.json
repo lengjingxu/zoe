@@ -30,20 +30,6 @@
       "desc": "low hills fading into haze, nothing urgent out there"
     }
   ],
-  "interactions": [
-    {
-      "id": "A-scene",
-      "desc": "working at the desk in the same frame"
-    },
-    {
-      "id": "B-care",
-      "desc": "looking up from the screen, chin on hand"
-    },
-    {
-      "id": "B-stretch",
-      "desc": "leaning back in a long stretch"
-    }
-  ],
   "room": "Kept things stand on a shelf, on the windowsill, or on the wall.",
   "note_gap_hours": 4,
   "note_layout": "Long shot for the room, but the note is a foreground object: she holds it out toward the camera at full arm length, square to the camera, so it reads large and sharp in the bottom-right of the frame. Everything left of centre and everything above her stays open and uncluttered for desktop icons.",

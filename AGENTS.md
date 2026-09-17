@@ -28,7 +28,7 @@ room [--write FILE]                the keepsakes, in and out
 prompt [--write FILE] [--note ID]  the text in use, and the only door a new one uses
 draw [--ref FILE|none] [--prompt FILE] [--out FILE]      the proxy draws the hour
 film [--first-frame FILE] [--prompt FILE] [--seconds N] [--out FILE]   the proxy moves it
-show --image FILE [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
+show --image FILE [--topic T] [--scene ID] [--pose WORDS] [--note ID] [--model M]
 last                               the last picture, as the reference for this hour
 reuse / motion / loop / status
 ```
