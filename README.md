@@ -180,6 +180,19 @@ wallpaper, below the icons, click-through, one window per display — and loops 
 with `AVPlayerLooper`. `zoe show --image` stops the movie, because the desktop holds
 one thing at a time.
 
+### What a loop costs
+
+Measured on one 3:2 still at `--duration 6 --resolution 720p`:
+
+- **It is softer than the still.** The clip came back 1178x786. On a retina display that
+  is a real step down from the picture it was made from, and 720p is the top setting the
+  model offers. The still is the sharp version of the same image; the loop is the moving one.
+- **The seam is close, not perfect.** Last frame against first frame lands around 30 dB, so
+  the jump back to the start is visible if you are looking for it. The prompt asks for a
+  seamless loop and the model approximates it; nobody guarantees it.
+- **The composition holds.** The first frame against the still it came from is around 37 dB,
+  and the subject stays where the layout rule put her.
+
 A movie is not free. It costs GPU and battery on a large display; if the fan matters
 more than the drift, stay with the stills.
 
