@@ -138,6 +138,14 @@ The reuse pool holds the last six hours of pictures. If the window is empty zoe
 brings one back instead of inventing a new one — an empty hour should not cost an
 image.
 
+## Setting the wallpaper
+
+`zoe show` writes a fresh timestamped file, because macOS caches a wallpaper by
+path, then asks every desktop what it is actually showing. macOS drops a desktop
+change now and then — on a two-display setup one screen can quietly keep the old
+picture — so a desktop that missed gets set again, and one that still refuses is an
+error rather than a half-done job that reports success.
+
 ## Privacy
 
 zoe reads local transcripts and sends one English paragraph to one image model. The
