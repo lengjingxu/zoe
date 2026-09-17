@@ -8,33 +8,41 @@ character, same hand, same window. The subject sits in the corner of the screen 
 the rest of the desktop is left alone. The picture changes when your day changes and
 stays put when nothing happened.
 
+The room fills up as the two of you go: a memory becomes an object on the shelf, stays
+in every picture for a few weeks, and then leaves.
+
 ```
-   clients on this machine            zoe                        your desktop
-   ────────────────────────           ───                        ────────────
-   Cindy      (sqlite transcript)  ┐
-   Codex      (rollout jsonl)      ├─▶ gather ─▶ brief ─▶ prompt ─▶ model ─▶ wallpaper
-   Claude Code(jsonl transcript)   ┘      │        │         │        │
-   long memory (project notes)  ───┘       │        │         │        └─ grok, then gpt-image-2
-                                           │        │         └─ preset: style, character, layout
-                                           │        └─ topic, mood, scene, props from memory
-                                           └─ only the last hour, only what a human typed
+  clients on this machine           zoe                       your desktop
+  ────────────────────────          ───                       ────────────
+  Cindy      (sqlite transcript) ┐
+  Codex      (rollout jsonl)     ├─▶ gather ─▶ room ─▶ prompt ─▶ image ─▶ wallpaper
+  Claude Code(jsonl transcript)  ┘      │        │        │         │
+  long memory (project notes) ───┘      │        │        │         └─ grok, then gpt-image-2
+                                        │        │        └─ the agent's text, checked
+                                        │        └─ a memory becomes an object
+                                        └─ only the last hour, only what a human typed
 ```
+
+Half of zoe is code and half of it is a prompt. The code reads transcripts, keeps the
+room's inventory, checks a prompt and puts a file on the desktop. What any one picture
+is about is written by an agent, once an hour, following [`SKILL.md`](SKILL.md).
 
 ## Why
 
 A wallpaper is the one surface that is already there. Putting a picture on it that
-knows what you were doing ten minutes ago is a cheap way to keep someone in the
-room. Two rules make it work:
+knows what you were doing ten minutes ago is a cheap way to keep someone in the room.
+Two rules make it work:
 
 - **Tied to now.** The picture is about the direction and the mood of the last hour,
   never a screenshot of it. No dashboards, no UI, no status board.
 - **Out of the way.** The subject occupies the bottom-right 15% of the frame. The
-  other 85% stays quiet, which is where desktop icons live. A busy wallpaper is
-  worse than no wallpaper.
+  other 85% stays quiet, which is where desktop icons live. A busy wallpaper is worse
+  than no wallpaper.
 
 ## Requirements
 
-macOS, Node 20.11+, `sqlite3` on PATH. No dependencies.
+macOS, Node 20.11+, `sqlite3` on PATH. No dependencies. An agent that can draw images
+(Claude Code, Codex or Cindy) to run the hour.
 
 ## Install
 
@@ -44,66 +52,56 @@ node bin/zoe.mjs init          # writes ~/.zoe/config.json
 node bin/zoe.mjs detect        # which clients were found on this machine
 ```
 
+Then ask your agent to follow `SKILL.md`, or put the hourly job on a schedule:
+
+```
+You are drawing the hourly wallpaper for this machine. Follow SKILL.md in this repo,
+start to finish, and report one line at the end.
+```
+
 ## Use
 
 ```sh
-zoe detect                     # clients and the paths they were found at
-zoe gather --hours 2           # what zoe can see right now
-zoe brief                      # that, turned into a brief for one picture
-zoe prompt                     # the exact text the image model receives
-zoe models --import -          # remember the client's model list (see below)
-zoe render                     # draw it (needs a provider, see below)
-zoe show --image FILE          # put an image on every desktop and record it
-zoe motion                     # the text that turns the picture on screen into a loop
-zoe loop --video FILE          # play a movie on the desktop layer instead of a still
-zoe tick                       # the whole loop, standalone
-zoe status                     # history, reuse pool, the props that accumulated
+zoe detect                        # clients and the paths they were found at
+zoe gather --hours 2 [--json]     # what this hour looks like, nothing decided
+zoe room                          # what stands in the room, and what it could take
+zoe room --write FILE             # add or retire keepsakes
+zoe prompt                        # the text the last hour drew with
+zoe prompt --write FILE           # hand over a new one: checked, then stored
+zoe models [--import -]           # the model priority list, and which one wins
+zoe show --image FILE|ADDR [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
+zoe reuse                         # bring a wallpaper back from the pool, costs nothing
+zoe motion                        # the text that turns the picture into a loop
+zoe loop --video FILE             # play a movie on the desktop layer instead of a still
+zoe status                        # the last hours, the pool, the desktop
 ```
 
-`brief.json` is the contract between the two halves. Read it if a picture comes out
-wrong; it says which topic, mood, scene and props it drew from, and it keeps the
-three lines of evidence behind that choice.
+The two files that carry between hours are written only through these commands:
+`~/.zoe/room.json` by `zoe room --write`, `~/.zoe/prompt.txt` by `zoe prompt --write`.
+That is where the guards are.
 
-## Two ways to run it
+## The room
 
-**Agent mode.** A coding agent does the drawing, because it already has an image
-tool that works. The agent runs `zoe brief` and `zoe prompt`, draws with its own
-media tool, then runs `zoe show --image`. This is what `AGENTS.md` describes and
-what a scheduled hourly job looks like. Nothing needs an API key.
-
-**Standalone.** `zoe tick` does everything itself against an OpenAI-compatible
-endpoint:
+`~/.zoe/room.json` is the keepsakes: one memory per object, with what it looks like,
+when it arrived and how often it has been drawn.
 
 ```json
-{
-  "providers": [
-    { "id": "xai", "base_url": "https://api.x.ai/v1", "api_key_env": "XAI_API_KEY", "models": ["xai/grok-imagine-image-2.0"] },
-    { "id": "openai", "base_url": "https://api.openai.com/v1", "api_key_env": "OPENAI_API_KEY", "models": ["openai/gpt-image-2"] }
-  ]
-}
+{ "symbols": [
+  { "id": "k1",
+    "memory": { "title": "优惠券分类规范", "at": 1789636992000, "text": "..." },
+    "thing": "a postcard propped on the windowsill, the corners soft from handling",
+    "added_at": 1789636992000, "seen_at": 1789636992000, "shown": 3 } ] }
 ```
 
-## Models
+The agent decides what enters and what leaves, from the candidate list `zoe room`
+prints and from the age of what is already there. The guards are in `src/room.mjs`:
+the memory has to be one the agent was shown, the thing has to be one line of English
+(8–140 characters, no Chinese), one new object per run, six in the room at a time, and
+an object older than `room_keep_days` is only a candidate for leaving.
 
-`zoe models` walks the priority list and prints what it will actually use, plus
-whatever it skipped to get there:
-
-```
-priority  : xai/grok-imagine-image-2.0  ->  openai/gpt-image-2
-picked    : xai/grok-imagine-image-2.0
-```
-
-The default is grok first, `gpt-image-2` second. A model that is unreachable is
-recorded in the run, never swapped in silently, and if the whole list is missing zoe
-stops instead of drawing something else. A wildcard such as
-`xai/grok-imagine-image*` follows the newest numbered variant in that family.
-
-In agent mode the model list belongs to the client, so ask the agent for it once:
-
-```sh
-# the agent calls its own media list_models and pipes the result in
-zoe models --import -    # {"models":[{"id":"xai/grok-imagine-image-2.0","provider_id":"xai"}, ...]}
-```
+Every keepsake is in every picture, so the memory stays in the room long after the hour
+that produced it. That is the difference between a memory and a note: paper lasts an
+hour, an object lasts weeks.
 
 ## Presets
 
@@ -117,6 +115,7 @@ A preset is the art direction, and it is data, not code:
   "negative": ["3D render", "CGI", "text", "user interface"],
   "scenes":       [{ "id": "city-night", "desc": "..." }],
   "interactions": [{ "id": "B-care", "desc": "chin on both hands, looking up" }],
+  "room": "where a kept thing can stand: the shelf, the windowsill, the wall",
   "notes":        [{ "id": "meal", "line": "该吃饭了", "hours": [11, 12, 13] }],
   "note_gap_hours": 4,
   "notePoses":    [{ "id": "N-hold", "desc": "holding the paper out toward the camera" }],
@@ -125,60 +124,77 @@ A preset is the art direction, and it is data, not code:
 }
 ```
 
-`presets/plain.json` is a neutral starting point. Put your own in
-`~/.zoe/presets/` and point `preset` at it; it stays out of the repo.
+`presets/plain.json` is a neutral starting point. Put your own in `~/.zoe/presets/` and
+point `preset` at it; it stays out of the repo.
 
-Scenes and interactions rotate by least-recently-used, so a small list keeps
-producing new pictures without ever repeating the last one.
+Scenes and interactions are lists to choose from, not a rotation the code enforces: the
+agent picks by least-recently-used, checks `zoe status` so it does not repeat the last
+hour, and says which ids it used in `zoe show`.
+
+## The prompt
+
+The prompt for the hour is a rewrite of the prompt that drew the last one. `zoe prompt`
+prints it; the agent edits it and hands it back through `zoe prompt --write`.
+
+`src/check.mjs` is the door it goes through. It refuses a prompt that dropped the style
+paragraph, the `Subject:` line, the layout paragraph (or `note_layout` for a note
+picture), any word in `negative`, the description of any keepsake that is in the room,
+or the Chinese line when a note was asked for. It also stops a prompt longer than 4000
+characters. Nothing is written if the check fails, so a careless hour cannot quietly
+drop the rules the whole series depends on.
 
 ## The note
 
-Every so often she holds up a piece of paper with a line on it: 该吃饭了 at a meal
-hour, 该睡了 late at night, 干得漂亮 when the hour ended in something shipped. It is
-the only writing zoe ever puts in a picture, and the ban on `text` in `negative` steps aside for that one picture because the writing is the whole point of it.
+Every so often she holds up a piece of paper with a line on it: 该吃饭了 at a meal hour,
+该睡了 late at night, 干得漂亮 when the hour ended in something shipped. It is the only
+writing zoe ever puts in a picture, and the ban on `text` in `negative` steps aside for
+that one picture because the writing is the whole point of it.
 
-A note has to earn its place, so three things line up first. The hour is one the note
-belongs to (`hours`), or if no note claims the hour, the mood matches `mood`.
-Nothing has been written on paper for `note_gap_hours`. And a pose is free to
-show it in. That holds notes to a few a day instead of every hour, and the poses rotate
-between holding it up, pressing it against the window glass and carrying it on a
-whiteboard, so the same moment does not arrive the same way twice.
+The note is one of several ways the hour can answer — a keepsake arriving, a keepsake
+leaving, a different pose, a different view. It is the loudest of them, so it stays
+rare: nothing has held paper for `note_gap_hours`, and the hour has to earn it.
 
-The paper is drawn as a foreground object. `note_layout` brings it out at arm
-length toward the camera so the characters still read at wallpaper size, while the rest
-of the frame stays open for icons. A preset with `notes` but no `notePoses` or no
-`note_layout` stops the run rather than drawing something nobody can read.
+`note_layout` brings the paper out at arm's length toward the camera so the characters
+still read at wallpaper size, while the rest of the frame stays open for icons. A note
+picture that does not name the line it is holding does not pass the check.
 
-## Continuity
+## Models
 
-`state.json` keeps a props ledger. Every prop that made it into a picture is
-recorded, and the next brief puts the two most recent ones back on the desk. That is
-the whole trick: the desk stays the same desk, and it slowly collects the things you
-two worked on.
+`zoe models` walks the priority list and prints what it will actually use, plus
+whatever it skipped to get there:
 
-The reuse pool holds the last six hours of pictures. If the window is empty zoe
-brings one back instead of inventing a new one — an empty hour should not cost an
-image.
+```
+priority  : xai/grok-imagine-image-2.0  ->  openai/gpt-image-2
+picked    : xai/grok-imagine-image-2.0
+```
+
+The default is grok first, `gpt-image-2` second. The list belongs to the client, so
+import it once and zoe stops guessing:
+
+```sh
+# the agent calls its own media list_models and pipes the result in
+zoe models --import -    # {"models":[{"id":"xai/grok-imagine-image-2.0","provider_id":"xai"}, ...]}
+```
+
+A wildcard such as `xai/grok-imagine-image*` follows the newest numbered variant in
+that family. If none of them are available zoe says so and the run stops; drawing with
+a model nobody asked for is worse than drawing nothing. You can also list the models in
+`providers` in the config instead of importing the client's list.
 
 ## Setting the wallpaper
 
-`zoe show` writes a fresh timestamped file, because macOS caches a wallpaper by
-path, then asks every desktop what it is actually showing. macOS drops a desktop
-change now and then — on a two-display setup one screen can quietly keep the old
-picture — so a desktop that missed gets set again, and one that still refuses is an
-error rather than a half-done job that reports success.
-
-## Privacy
-
-zoe reads local transcripts and sends one English paragraph to one image model. The
-prompts and the briefs stay on disk. Nothing is uploaded anywhere else, and the repo
-ships no personal data: your config lives in `~/.zoe/`, your pictures in the
-`out_dir` you choose.
+`zoe show --image` takes a path or the managed `cindy-media://` address a media
+tool handed back; for a managed address the bytes come from the client's own media
+folder. It writes a fresh timestamped file, because macOS caches a wallpaper by path, then
+asks every desktop what it is actually showing. macOS drops a desktop change now and then
+— on a two-display setup one screen can quietly keep the old picture — so a desktop that
+missed gets set again, and one that still refuses is an error rather than a half-done job
+that reports success.
 
 ## Motion
 
-A still picture cannot move, so the same picture becomes a loop: the still you
-already like is the first frame, and only the small things change.
+A still picture cannot move, so the same picture becomes a loop: the still you already
+like is the first frame, and only the small things change.
 
 ```sh
 zoe motion                     # the exact text the video model receives
@@ -226,6 +242,13 @@ Measured on one 3:2 still at `--duration 6 --resolution 720p`:
 A movie is not free. It costs GPU and battery on a large display; if the fan matters
 more than the drift, stay with the stills.
 
+## Privacy
+
+zoe reads local transcripts and sends one English paragraph to one image model. The
+prompts and the room stay on disk. Nothing is uploaded anywhere else, and the repo
+ships no personal data: your config lives in `~/.zoe/`, your pictures in the `out_dir`
+you choose.
+
 ## Tests
 
 ```sh
@@ -234,9 +257,6 @@ npm test
 
 They cover the parts that are easy to get quietly wrong: the time window applied per
 line rather than per file, the same sentence arriving from two clients, harness
-scaffolding stripped out of transcripts, rotation that actually rotates, and a model
-list that fails loudly instead of downgrading. The note tests cover what makes a note rare
-and what it takes to show one; the motion tests cover the loop text and the player record:
-a pid left behind by a dead player must not look like a movie that is still up, and
-stopping must really stop it.
-
+scaffolding stripped out of transcripts, rotation that actually rotates, a model list
+that fails loudly instead of downgrading, the room's guards, and a prompt check that
+names what went missing. There is no test for taste: that lives in `SKILL.md`.

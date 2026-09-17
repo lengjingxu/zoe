@@ -7,6 +7,8 @@ export const REPO = path.resolve(import.meta.dirname, '..');
 export const ZOE_HOME = process.env.ZOE_HOME || path.join(HOME, '.zoe');
 export const CONFIG_PATH = path.join(ZOE_HOME, 'config.json');
 export const STATE_PATH = path.join(ZOE_HOME, 'state.json');
+export const ROOM_PATH = path.join(ZOE_HOME, 'room.json');
+export const PROMPT_PATH = path.join(ZOE_HOME, 'prompt.txt');
 
 const DEFAULTS = {
   preset: 'hojo',
@@ -14,6 +16,9 @@ const DEFAULTS = {
   reuse_hours: 6,
   out_dir: path.join(HOME, 'Pictures', 'zoe'),
   keep_wallpapers: 40,
+  room_max: 6,
+  room_keep_days: 30,
+  room_add_per_run: 1,
   models: {
     priority: ['xai/grok-imagine-image-2.0', 'openai/gpt-image-2']
   },

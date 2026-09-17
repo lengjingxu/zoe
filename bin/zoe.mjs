@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { loadConfig, loadPreset, writeDefaultConfig, ZOE_HOME, STATE_PATH, CONFIG_PATH } from '../src/config.mjs';
-import { collect, detect } from '../src/sources.mjs';
-import { build } from '../src/brief.mjs';
-import { compose } from '../src/prompt.mjs';
+import { loadConfig, loadPreset, writeDefaultConfig, ZOE_HOME, STATE_PATH, CONFIG_PATH, ROOM_PATH, PROMPT_PATH } from '../src/config.mjs';
+import { collect, detect, longMemory } from '../src/sources.mjs';
+import { check } from '../src/check.mjs';
+import * as roomMod from '../src/room.mjs';
 import * as modelList from '../src/models.mjs';
-import * as renderer from '../src/renderer.mjs';
 import * as wallpaper from '../src/wallpaper.mjs';
 import * as store from '../src/state.mjs';
 import * as movie from '../src/movie.mjs';
 import { animate } from '../src/motion.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
-const briefFile = path.join(ZOE_HOME, 'brief.json');
 const log = (...parts) => console.log('[zoe]', ...parts);
 
 main().catch((err) => {
@@ -21,6 +20,8 @@ main().catch((err) => {
   process.exit(1);
 });
 
+// This file is the toolbox. What the picture is about is decided by whoever runs it:
+// the skill in SKILL.md reads the data these commands print and hands the result back.
 async function main() {
   const cfg = loadConfig();
   switch (argv._[0]) {
@@ -32,12 +33,10 @@ async function main() {
       return cmdModels(cfg);
     case 'gather':
       return cmdGather(cfg);
-    case 'brief':
-      return cmdBrief(cfg);
+    case 'room':
+      return cmdRoom(cfg);
     case 'prompt':
       return cmdPrompt(cfg);
-    case 'render':
-      return cmdRender(cfg);
     case 'show':
       return cmdShow(cfg);
     case 'reuse':
@@ -46,8 +45,6 @@ async function main() {
       return cmdMotion(cfg);
     case 'loop':
       return cmdLoop(cfg);
-    case 'tick':
-      return cmdTick(cfg);
     case 'status':
       return cmdStatus(cfg);
     default:
@@ -79,56 +76,108 @@ async function cmdModels(cfg) {
     console.log('picked    : ' + pick.id + (pick.skipped.length ? '   (skipped ' + pick.skipped.join(', ') + ')' : ''));
   } catch (err) {
     console.log('available : (none)');
-    console.log('picked    : nothing, ' + err.message.split('\n')[0]);
+    console.log('picked    : nothing, ' + err.message.split(String.fromCharCode(10))[0]);
   }
 }
 
+// Everything zoe is allowed to know about this hour, as text, and as JSON on request.
 async function cmdGather(cfg) {
   const hours = num(argv.hours, cfg.hours);
   const out = await collect(cfg, { hours });
   const counts = out.items.reduce((acc, i) => ({ ...acc, [i.source]: (acc[i.source] || 0) + 1 }), {});
   log('window: last ' + hours + 'h   items: ' + out.items.length + '  ' + JSON.stringify(counts));
-  for (const item of out.items.slice(-num(argv.limit, 20))) {
-    console.log('  ' + new Date(item.at).toLocaleTimeString() + '  ' + item.source.padEnd(11) + '  ' + (item.project || '-').padEnd(16) + '  ' + item.text.slice(0, 90));
+  for (const item of out.items.slice(-num(argv.limit, 40))) {
+    console.log('  ' + new Date(item.at).toLocaleTimeString() + '  ' + item.source.padEnd(11) + '  ' + (item.project || '-').padEnd(16) + '  ' + item.text.slice(0, 120));
   }
   log('memory: ' + out.memory.length + ' long-term notes');
   if (argv.json) console.log(JSON.stringify(out, null, 2));
 }
 
-async function cmdBrief(cfg) {
+// The room: what stands in it now, what it could take out of the long memory, and what
+// has been there long enough to go. The agent furnishes it; this only holds the door.
+async function cmdRoom(cfg) {
   const preset = loadPreset(cfg.preset);
-  const state = store.prune(store.load(STATE_PATH), Date.now(), cfg.reuse_hours);
-  const collected = await collect(cfg, { hours: num(argv.hours, cfg.hours) });
-  const brief = build({ collected, preset, state, config: cfg });
-  fs.mkdirSync(ZOE_HOME, { recursive: true });
-  fs.writeFileSync(briefFile, JSON.stringify(brief, null, 2) + '\n');
-  if (brief.idle) {
-    log('nothing happened in the last ' + num(argv.hours, cfg.hours) + 'h, no brief to draw');
-    log('reuse pool holds ' + state.pool.length + ' wallpapers');
-    return;
+  const now = Date.now();
+  const room = roomMod.load(ROOM_PATH);
+  if (argv.write) {
+    const next = roomMod.apply(room, JSON.parse(readInput(argv.write)), {
+      memory: longMemory(), now, max: cfg.room_max, perRun: cfg.room_add_per_run
+    });
+    roomMod.save(ROOM_PATH, next);
+    return log('the room holds ' + next.symbols.length + ': ' + next.symbols.map((s) => s.id + ' ' + s.memory.title).join(' | '));
   }
-  log('brief written to ' + briefFile);
-  console.log(JSON.stringify(brief, null, 2));
+  const view = roomMod.state(room, { memory: longMemory(), now });
+  const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+  console.log('room      ' + view.symbols.length + ' of ' + cfg.room_max + ' things');
+  for (const s of view.symbols) {
+    console.log('          ' + s.id + '  ' + s.thing);
+    console.log('                ' + s.memory + '  |  remembered ' + day(s.remembered) + '  |  in the room ' + s.in_room_days + ' days  |  drawn ' + s.shown + ' times');
+  }
+  const old = view.symbols.filter((s) => s.in_room_days > cfg.room_keep_days);
+  console.log('to retire ' + (old.length ? old.map((s) => s.id + ' (' + s.in_room_days + ' days)').join(', ') : 'nothing has been here longer than ' + cfg.room_keep_days + ' days'));
+  if (preset.room) console.log('lives     ' + preset.room);
+  console.log('memory    ' + view.candidates.length + ' note(s) not in the room yet');
+  for (const m of view.candidates) console.log('            ' + m.title + '   remembered ' + day(m.remembered));
+  console.log('schema    ' + '{"add":[{"memory":"<title, exactly as listed>","thing":"<one line of English: what it looks like and where it stands>"}],"retire":["<id>"]}');
+  console.log('then      zoe room --write /tmp/zoe-room.json   (at most ' + cfg.room_add_per_run + ' new per run, the room holds ' + cfg.room_max + ')');
 }
 
+// The prompt in use, and the only way a new one gets in. It is checked against the
+// preset and the room first, so no hour can quietly drop the layout or the bans.
 async function cmdPrompt(cfg) {
-  const preset = loadPreset(cfg.preset);
-  let brief = JSON.parse(fs.readFileSync(argv.brief || briefFile, 'utf8'));
-  if (brief.idle) {
-    if (!argv.idle) throw new Error('the brief is idle, there is nothing new to answer. Pass --idle to draw a quiet one anyway.');
-    brief = idleBrief(cfg, preset, store.load(STATE_PATH), Date.now());
+  if (!argv.write) {
+    if (!fs.existsSync(PROMPT_PATH)) return log('no prompt has been written yet: ' + PROMPT_PATH);
+    return console.log(fs.readFileSync(PROMPT_PATH, 'utf8').trim());
   }
-  console.log(compose({ brief, preset }));
+  const preset = loadPreset(cfg.preset);
+  const room = roomMod.load(ROOM_PATH);
+  const text = readInput(argv.write).trim();
+  check({ text, preset, room, note: argv.note ? noteLine(preset, argv.note) : null });
+  fs.mkdirSync(ZOE_HOME, { recursive: true });
+  fs.writeFileSync(PROMPT_PATH, text + String.fromCharCode(10));
+  log('prompt stored at ' + PROMPT_PATH);
+  console.log(text);
+}
+
+async function cmdShow(cfg) {
+  const now = Date.now();
+  const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
+  const image = path.resolve(localPath(argv.image || argv._[1]));
+  const unique = putOnDesktop(cfg, image);
+  store.remember(state, {
+    at: now,
+    image: unique,
+    topic: argv.topic || path.basename(image),
+    scene: argv.scene || null,
+    interaction: argv.pose || null,
+    note: argv.note || null,
+    model: argv.model || null
+  }, { now, reuseHours: cfg.reuse_hours });
+  store.save(STATE_PATH, state);
+  roomMod.save(ROOM_PATH, roomMod.touch(roomMod.load(ROOM_PATH), now));
+  const gone = wallpaper.prune(cfg.out_dir, cfg.keep_wallpapers);
+  log('desktop set to ' + unique + (gone.length ? ', pruned ' + gone.length + ' old file(s)' : ''));
+}
+
+// An empty hour should not cost a picture: bring one back from the pool instead.
+async function cmdReuse(cfg) {
+  const now = Date.now();
+  const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
+  if (!state.pool.length) return log('the pool is empty, nothing to bring back');
+  const image = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
+  const unique = putOnDesktop(cfg, image, now);
+  store.remember(state, { at: now, image: unique, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
+  store.save(STATE_PATH, state);
+  log('brought back ' + unique);
 }
 
 async function cmdMotion(cfg) {
   const preset = loadPreset(cfg.preset);
-  const brief = fs.existsSync(argv.brief || briefFile) ? JSON.parse(fs.readFileSync(argv.brief || briefFile, 'utf8')) : null;
-  console.log(animate({ preset, note: brief && brief.note, seconds: num(argv.seconds, null), resolution: argv.resolution }));
+  console.log(animate({ preset, seconds: num(argv.seconds, null), resolution: argv.resolution }));
 }
 
-// The desktop takes one thing at a time: a movie and a still picture cannot both
-// be the wallpaper, so starting either stops the other.
+// The desktop takes one thing at a time: a movie and a still picture cannot both be
+// the wallpaper, so starting either stops the other.
 async function cmdLoop(cfg) {
   if (argv.stop) {
     const was = movie.stop();
@@ -143,129 +192,50 @@ async function cmdLoop(cfg) {
   log('playing ' + state.file + ' at the desktop layer (pid ' + state.pid + ')');
 }
 
-async function cmdRender(cfg) {
-  const preset = loadPreset(cfg.preset);
-  const brief = JSON.parse(fs.readFileSync(argv.brief || briefFile, 'utf8'));
-  const prompt = compose({ brief, preset });
-  const model = modelList.resolve(cfg);
-  log('drawing with ' + model.id + (model.skipped.length ? ' (skipped ' + model.skipped.join(', ') + ')' : ''));
-  const bytes = await renderer.generate(cfg, model, prompt);
-  const file = path.join(cfg.out_dir, 'raw_' + Date.now() + '.jpg');
-  fs.mkdirSync(cfg.out_dir, { recursive: true });
-  fs.writeFileSync(file, bytes);
-  log('image written to ' + file);
+// What the last hours did, so the next one can avoid repeating them.
+async function cmdStatus(cfg) {
+  const state = store.load(STATE_PATH);
+  console.log('config     : ' + CONFIG_PATH);
+  console.log('out_dir    : ' + cfg.out_dir);
+  console.log('preset     : ' + cfg.preset);
+  console.log('room       : ' + roomMod.load(ROOM_PATH).symbols.length + ' keepsake(s)');
+  console.log('runs       : ' + state.history.length);
+  for (const run of state.history.slice(-num(argv.hours, 6))) {
+    console.log('  ' + new Date(run.at).toLocaleString() + '  ' + (run.topic || '-') + '  scene=' + (run.scene || '-') + '  pose=' + (run.interaction || '-') + '  note=' + (run.note || '-') + '  ' + (run.model || ''));
+  }
+  console.log('pool       : ' + state.pool.length + ' wallpaper(s) still reusable');
+  const playing = movie.running();
+  console.log('movie      : ' + (playing ? playing.file + ' (pid ' + playing.pid + ')' : '(none)'));
+  console.log('desktop    : ' + wallpaper.current());
 }
 
-// The desktop holds one thing at a time, and a loop must never outlive the
-// picture it was made from.
 function putOnDesktop(cfg, image, tag) {
   const stopped = movie.stop();
   if (stopped) log('took the movie off the desktop');
   return wallpaper.show(image, cfg.out_dir, cfg.refresh, tag);
 }
 
-async function cmdShow(cfg) {
-  const state = store.prune(store.load(STATE_PATH), Date.now(), cfg.reuse_hours);
-  const brief = argv.brief ? JSON.parse(fs.readFileSync(argv.brief, 'utf8')) : {};
-  const image = path.resolve(argv.image || argv._[1]);
-  const unique = putOnDesktop(cfg, image);
-  store.remember(state, {
-    at: Date.now(),
-    image: unique,
-    topic: brief.topic || path.basename(image),
-    scene: brief.scene && brief.scene.id,
-    interaction: brief.interaction && brief.interaction.id,
-    note: (brief.note && brief.note.id) || null,
-    props: brief.props || [],
-    model: argv.model || (brief.model || null)
-  }, { now: Date.now(), reuseHours: cfg.reuse_hours });
-  store.save(STATE_PATH, state);
-  const gone = wallpaper.prune(cfg.out_dir, cfg.keep_wallpapers);
-  log('desktop set to ' + unique + (gone.length ? ', pruned ' + gone.length + ' old file(s)' : ''));
+// The note is named by its id everywhere else, so name it by id here too.
+function noteLine(preset, id) {
+  const found = (preset.notes || []).find((n) => n.id === id);
+  if (!found) throw new Error('preset ' + preset.name + ' has no note called ' + id + ': ' + (preset.notes || []).map((n) => n.id).join(', '));
+  return found.line;
 }
 
-// An empty hour should not cost a picture: bring one back from the pool. A
-// missing pool is reported, never invented around.
-async function cmdReuse(cfg) {
-  const now = Date.now();
-  const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
-  if (!state.pool.length) return log('the pool is empty, nothing to bring back');
-  const image = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
-  const unique = putOnDesktop(cfg, image, now);
-  store.remember(state, { at: now, image: unique, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
-  store.save(STATE_PATH, state);
-  log('brought back ' + unique);
+// The media tools hand back a managed address, and the bytes are already on this disk
+// under the client's own media folder: take the file from there.
+function localPath(from) {
+  const mediaRoot = path.join(os.homedir(), 'Library', 'Application Support', 'Cindy', 'cindy-media');
+  const hit = /^cindy-media:\/\/(.+)$/.exec(from || '');
+  if (!hit) return from;
+  const name = hit[1].replace(/^blobs\//, '');
+  const file = path.join(mediaRoot, 'blobs', name.slice(0, 2), name);
+  if (!fs.existsSync(file)) throw new Error('no file behind ' + from + ', expected ' + file);
+  return file;
 }
 
-async function cmdTick(cfg) {
-  const preset = loadPreset(cfg.preset);
-  const now = Date.now();
-  const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
-  const collected = await collect(cfg, { hours: cfg.hours, now });
-  let brief = build({ collected, preset, state, config: cfg });
-
-  if (brief.idle && state.pool.length) {
-    store.save(STATE_PATH, state);
-    return cmdReuse(cfg);
-  }
-  if (brief.idle) {
-    brief = idleBrief(cfg, preset, state, now);
-    log('nothing new to answer, drawing a quiet one');
-  }
-
-  const prompt = compose({ brief, preset });
-  const model = modelList.resolve(cfg);
-  log('topic: ' + brief.topic);
-  log('drawing with ' + model.id);
-  const bytes = await renderer.generate(cfg, model, prompt);
-  fs.mkdirSync(cfg.out_dir, { recursive: true });
-  const raw = path.join(cfg.out_dir, 'raw_' + now + '.jpg');
-  fs.writeFileSync(raw, bytes);
-  const unique = wallpaper.show(raw, cfg.out_dir, cfg.refresh, now);
-  fs.unlinkSync(raw);
-
-  store.remember(state, {
-    at: now, image: unique, topic: brief.topic, scene: brief.scene.id, interaction: brief.interaction.id,
-    note: (brief.note && brief.note.id) || null,
-    props: brief.props, model: model.id, prompt
-  }, { now, reuseHours: cfg.reuse_hours });
-  store.save(STATE_PATH, state);
-  wallpaper.prune(cfg.out_dir, cfg.keep_wallpapers);
-  log('desktop is now ' + unique);
-}
-
-function idleBrief(cfg, preset, state, now) {
-  const hour = new Date(now).getHours();
-  return {
-    idle: false,
-    quiet: true,
-    at: now,
-    topic: 'idle',
-    keywords: [],
-    slot: hour + ':00',
-    weekday: now,
-    mood: 'nothing on fire, room to breathe',
-    scene: store.rotate(preset.scenes, state.history, 'scene'),
-    interaction: { id: 'idle', desc: preset.idle },
-    wish: null,
-    props: [],
-    desk: (state.props || []).slice().sort((a, b) => b.last - a.last).slice(0, 2).map((p) => p.name)
-  };
-}
-
-async function cmdStatus(cfg) {
-  const state = store.load(STATE_PATH);
-  const last = state.history[state.history.length - 1];
-  console.log('config     : ' + CONFIG_PATH);
-  console.log('out_dir    : ' + cfg.out_dir);
-  console.log('preset     : ' + cfg.preset);
-  console.log('runs       : ' + state.history.length);
-  console.log('last run   : ' + (last ? new Date(last.at).toLocaleString() + '  ' + last.topic + '  ' + (last.model || '') : '(never)'));
-  console.log('pool       : ' + state.pool.length + ' wallpaper(s) still reusable');
-  console.log('props      : ' + (state.props.map((p) => p.name + ' x' + p.count).join(', ') || '(none yet)'));
-  const playing = movie.running();
-  console.log('movie      : ' + (playing ? playing.file + ' (pid ' + playing.pid + ')' : '(none)'));
-  console.log('desktop    : ' + wallpaper.current());
+function readInput(from) {
+  return from === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(from, 'utf8');
 }
 
 function usage() {
@@ -273,21 +243,22 @@ function usage() {
     'zoe <command>',
     '',
     '  init                     write a default config to ~/.zoe/config.json',
-    '  detect                   show which clients were found on this machine',
-    '  models [--import -]      show the model priority list and which one wins',
-    '  gather [--hours N]       what zoe can see right now',
-    '  brief  [--hours N]       turn that into a brief for one picture',
-    '  prompt [--brief FILE]    the exact text sent to the image model',
-    '  render [--brief FILE]    draw it with the configured provider (standalone)',
-    '  show --image FILE        put an image on every desktop and record it',
-    '  prompt --idle            draw the quiet one, for an hour with nothing in it',
+    '  detect                   which clients were found on this machine, and where',
+    '  models [--import -]      the model priority list, and which one wins',
+    '  gather [--hours N] [--json]   what this hour looks like, from the transcripts',
+    '  room                     what stands in the room, and the memory it could take',
+    '  room --write FILE        add or retire keepsakes (one new per run, room of six)',
+    '  prompt                   the prompt in use, the one the last hour drew with',
+    '  prompt --write FILE      hand over a new one: checked, then stored',
+    '      [--note ID]          the note id from the preset, when she holds paper',
+    '  show --image FILE|ADDR   put an image on every desktop and record the hour',
+    '      [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]',
     '  reuse                    bring a wallpaper back from the pool without drawing',
     '  motion [--seconds N]     the text that turns the picture on screen into a loop',
     '  loop --video FILE        play a movie at the desktop layer, under the icons',
     '  loop --stop              take the movie off the desktop',
-    '  tick                     gather, brief, draw, show (standalone)',
-    '  status                   history, reuse pool, props ledger'
-  ].join('\n'));
+    '  status [--hours N]       what the last hours drew, the pool, the desktop'
+  ].join(String.fromCharCode(10)));
 }
 
 function parseArgs(list) {
@@ -304,4 +275,3 @@ function num(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
-
