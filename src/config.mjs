@@ -15,6 +15,7 @@ const DEFAULTS = {
   hours: 1,
   reuse_hours: 6,
   out_dir: path.join(HOME, 'Pictures', 'zoe'),
+  size: '1792x1024',
   keep_wallpapers: 40,
   room_max: 6,
   room_keep_days: 30,

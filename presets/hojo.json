@@ -4,6 +4,7 @@
   "character": "an adult East Asian woman in her late twenties, confident and self-possessed, sleek short straight hair with a strong purple tint, off-shoulder knit top, elegant and a little seductive but always composed. She has a private silly streak: unfinished selfies, getting tangled in cables, a pole jammed in a doorway, an out-of-focus grimace at a screen.",
   "layout": "Extreme long shot, wide establishing composition. The woman and everything she touches sit in the bottom-right corner and take up only 15% of the frame. The left, top and centre 85% stay open and uncluttered, showing the view through the window and the reflective floor, so desktop icons have somewhere to live. Nothing may cross the open area.",
   "motion": "Locked-off camera, one continuous take, no cuts, and the last frame lands back on the first so the loop has no seam. Only the smallest motion, the kind you notice a second late: she breathes, blinks, and her weight settles by a hair; a few strands of her hair and the loose knit of her top drift in the slowest breeze; outside, water crawls down the glass and the light eases a shade. No action of any kind: she does not stand, turn, cross or uncross her legs, lift, reach for or pick anything up, and nothing on the desk moves from where it is. One recognizable action is what makes a loop feel like a loop.",
+  "evening": "After eight in the evening the shift is over: the knit has slipped off one shoulder, a glass stands on the desk beside the keyboard, her hair is pushed back, and she is dressed for an evening rather than for work.",
   "negative": [
     "3D render",
     "CGI",
@@ -19,12 +20,12 @@
   ],
   "scenes": [
     {
-      "id": "city-night",
-      "desc": "a wet downtown skyline at night seen from a high floor, neon bleeding into rain on the glass, a few lit windows still on"
+      "id": "shanghai-lujiazui",
+      "desc": "Lujiazui and the Bund across the river at night, towers stacked into haze, the wet plane trees of the old concession streets below full of red tail lights"
     },
     {
-      "id": "city-dusk",
-      "desc": "a river city at dusk, low sun on the water, towers turning on one by one"
+      "id": "hangzhou-river",
+      "desc": "the Qiantang from a high floor, the lights of Qianjiang New City on the far bank, water going past wide and flat"
     },
     {
       "id": "bamboo-rain",
@@ -49,32 +50,6 @@
     {
       "id": "gobi-sunset",
       "desc": "a dry plain burning orange at the end of the day, wind moving dust across an empty road"
-    }
-  ],
-  "interactions": [
-    {
-      "id": "A-scene",
-      "desc": "working in the same frame, hunched over a terminal or a board, sleeves pushed up, sharing the shift with the viewer"
-    },
-    {
-      "id": "B-care",
-      "desc": "chin on both hands, looking up from the screen toward the viewer, a mug of coffee still steaming beside her"
-    },
-    {
-      "id": "B-stretch",
-      "desc": "leaning back from the desk with both arms up in a long stretch, eyes half shut, having just finished something"
-    },
-    {
-      "id": "B-confused",
-      "desc": "tilted head, staring at a wall of logs with an honest look of confusion, mouth slightly open"
-    },
-    {
-      "id": "A-latenight",
-      "desc": "asleep sitting up, cheek on her own arm, one monitor still glowing, pen still in hand"
-    },
-    {
-      "id": "B-cheer",
-      "desc": "fist raised in a small quiet victory, the other hand still on the keyboard"
     }
   ],
   "room": "Kept things stand on the shelf above the desk, on the windowsill, on the wall beside the window, or lean against the wall on the floor. Nothing digital, nothing that looks bought yesterday.",

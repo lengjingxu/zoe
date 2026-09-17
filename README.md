@@ -73,7 +73,7 @@ zoe models                        # the model priority list, and which one wins
 zoe last                          # the picture the last hour left, to draw from
 zoe draw [--ref FILE|none]        # the gateway draws this hour, prints the file
 zoe film [--first-frame FILE]     # the gateway turns that still into a loop
-zoe show --image FILE [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]
+zoe show --image FILE [--topic T] [--scene ID] [--pose WORDS] [--note ID] [--model M]
 zoe reuse                         # bring a wallpaper back from the pool, costs nothing
 zoe motion                        # the text that turns the picture into a loop
 zoe loop --video FILE             # play a movie on the desktop layer instead of a still
@@ -117,8 +117,8 @@ A preset is the art direction, and it is data, not code:
   "character": "who is in the picture, described once, kept forever",
   "layout": "where the subject sits and how much stays open",
   "negative": ["3D render", "CGI", "text", "user interface"],
-  "scenes":       [{ "id": "city-night", "desc": "..." }],
-  "interactions": [{ "id": "B-care", "desc": "chin on both hands, looking up" }],
+  "scenes":       [{ "id": "shanghai-lujiazui", "desc": "..." }],
+  "evening": "what changes about her after eight at night",
   "room": "where a kept thing can stand: the shelf, the windowsill, the wall",
   "notes":        [{ "id": "meal", "line": "该吃饭了", "hours": [11, 12, 13] }],
   "note_gap_hours": 4,
@@ -131,9 +131,13 @@ A preset is the art direction, and it is data, not code:
 `presets/plain.json` is a neutral starting point. Put your own in `~/.zoe/presets/` and
 point `preset` at it; it stays out of the repo.
 
-Scenes and interactions are lists to choose from, not a rotation the code enforces: the
-agent picks by least-recently-used, checks `zoe status` so it does not repeat the last
-hour, and says which ids it used in `zoe show`.
+Scenes are a list to choose from, not a rotation the code enforces: the agent picks by
+least-recently-used, checks `zoe status` so it does not repeat the last hour, and says
+which id it used in `zoe show`. The view can also be a place that came up in the memory,
+named in the prompt without being in the list at all.
+
+What she is doing is not a list. It is invented for the hour out of the work itself, and the
+hour is told in `items`; the desk carries this hour, the keepsakes carry the memory.
 
 ## The prompt
 
@@ -212,6 +216,9 @@ nobody asked for is worse than drawing nothing.
 
 ## Setting the wallpaper
 
+The picture is 16:9. `size` in the config asks the gateway for 1792x1024 and it hands back
+1280x720; 3:2 is one line away if you prefer a taller frame.
+
 `zoe show --image` takes a file on this disk, which is what `zoe draw` and `zoe film`
 print. It writes a fresh timestamped file, because macOS caches a wallpaper by path, then
 asks every desktop what it is actually showing. macOS drops a desktop change now and then
@@ -248,7 +255,7 @@ one thing at a time.
 
 ### What a loop costs
 
-Measured through the gateway on one 3:2 still of 1248x832:
+Measured here on one still of 1248x832 and the loop made from it:
 
 - **It is softer than the still.** At the default resolution the clip came back 672x448;
   at `--resolution 720p` it came back 1168x768. On a retina display the small one is a

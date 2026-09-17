@@ -302,7 +302,7 @@ function usage() {
     '  film [--first-frame F]   turn that still into a loop, print the file it landed in',
     '      [--prompt FILE] [--seconds N] [--out FILE]',
     '  show --image FILE        put an image on every desktop and record the hour',
-    '      [--topic T] [--scene ID] [--pose ID] [--note ID] [--model M]',
+    '      [--topic T] [--scene ID] [--pose WORDS] [--note ID] [--model M]',
     '  reuse                    bring a wallpaper back from the pool without drawing',
     '  motion                   the text that turns the picture on screen into a loop',
     '  loop --video FILE        play a movie at the desktop layer, under the icons',
