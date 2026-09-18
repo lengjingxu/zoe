@@ -120,8 +120,15 @@ What she is doing is a state, not the middle of a move: something she could hold
 seconds of the loop without changing. Nothing half-finished — a hand still travelling to
 something, a cable on its way into its socket, anything on its way into or out of frame —
 because the clip cannot finish it, and a video model asked to hold that frame drifts
-instead. A pose that would fit any hour is the one to avoid, and two hours in a row should not
-look like the same hour.
+instead.
+
+Because generation uses image-to-image (`--ref last`) to preserve the room layout, windows,
+and keepsakes, the prompt MUST explicitly instruct the model to break away from the reference
+character posture. Do NOT keep her standing in the same pose. The prompt should explicitly state:
+"Her pose is completely changed from the reference image, not repeating the previous posture.
+She is now [seated in the desk chair / leaning over the desk / lounging on the low sofa / resting
+her chin in her palm / leaning against the windowsill]..." Varied postures (sitting, reclining,
+leaning, focused desk work) give authentic companionship across hours.
 
 After eight in the evening, work the `evening` line of the preset in as well: the day is off, and
 the picture knows it.
@@ -154,10 +161,10 @@ down: if the gateway refuses, the command fails and says which model it wanted a
 came back.
 
 It reads the prompt out of `~/.zoe/prompt.txt` and draws from the picture the last hour left on the
-desktop. That picture is the reference, so the room, the hand, the palette and where
-everything stands come back as they were, and only what the prompt names moves: the view
-outside, what stands in the room, what she is doing. Write the prompt that way, naming what
-stays and what changes, and keep the changes small - an hour apart is an hour, not a season.
+desktop. That picture is the reference, so the room, the window view, the palette and the keepsakes
+remain strictly consistent. But inside that stable room, her posture and action must distinctly
+change according to the prompt so she does not remain frozen in the same standing stance hour
+after hour.
 
 ```sh
 node bin/zoe.mjs draw --ref none      # the first hour ever: nothing to come from
@@ -236,3 +243,4 @@ particular, and add no keepsake.
 
 One line back to the user: what the hour was about, the file that landed, and whether it
 moves.
+
