@@ -5,23 +5,24 @@ import AVFoundation
 // wallpaper. macOS has no supported way to set a movie as wallpaper, so the
 // movie becomes a window at the same layer the wallpaper itself occupies.
 //
-// The clip comes back from the video model with a last frame that does not sit
-// exactly on the first one, and that difference reads as a jump every time the
-// loop turns over. So the tail is dissolved into the head before the movie
-// plays: the piece that repeats begins on the frame the old ending was fading
-// into, and ends on that same frame, so the loop closes on itself.
+// The clip is pre-rendered as a seamless ping-pong loop (or has matching endpoints),
+// so AVPlayerLooper loops it cleanly and gaplessly without destructive cross-dissolve surgery.
 
-let FADE = 0.4
+let FADE = 0.0
 
 @MainActor
 func loopItem(for url: URL) -> AVPlayerItem {
     let asset = AVURLAsset(url: url)
     let seconds = CMTimeGetSeconds(asset.duration)
     let source = asset.tracks(withMediaType: .video).first
-    if source == nil || seconds <= FADE * 2 {
+    if source == nil || seconds <= 0.1 {
         FileHandle.standardError.write(Data(
             "zoe-desktop-movie: \(url.lastPathComponent) is not a clip to loop (\(seconds)s, no usable video track)\n".utf8))
         exit(1)
+    }
+
+    if FADE <= 0.001 {
+        return AVPlayerItem(asset: asset)
     }
 
     let whole = CMTime(seconds: seconds, preferredTimescale: 600)

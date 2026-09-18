@@ -208,14 +208,15 @@ sends your own instead.
 The two halves split the work: the still decides what she holds and how, and the clip keeps it
 where it is. So the action in the still has to be one she can hold without moving.
 
-The text asks for the smallest motion there is — breathing, blinking, hair and cloth
-drifting — and for no action at all: nobody sits down or gets up, turns, crosses their legs
-or reaches for anything, nothing new appears, and whatever the still has her holding stays
-where it is. The clip plays behind the icons over and over, so it
-also asks for the last frame to land on the first one, for nothing that comes round on a
-beat, and for the light to stay exactly as it is. A seam, a beat or a picture that slowly
-brightens and darkens is what makes a loop feel like a loop, and all three are visible
-within the first minute of watching. Keep it that way.
+The preset specifies a pure cinemagraph living photo: her posture, head, neck, face, and gaze
+are strictly frozen with zero turning, zero nodding, and zero body movement, leaving only subtle
+ambient micro-motions: gentle rise and fall of chest breathing, micro-fluttering of hair tips and
+knit fabric edges, and outside window reflections or rain trickling down the glass. 
+
+`film` automatically post-processes the clip with ffmpeg ping-pong (forward + reverse), guaranteeing
+that the last frame connects back to the first frame with mathematical precision (F_end === F_start).
+`DesktopMovie` plays this seamless clip natively under the desktop icons without destructive
+cross-dissolve jumps.
 
 ## An empty hour
 

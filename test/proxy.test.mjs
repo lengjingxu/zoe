@@ -48,3 +48,11 @@ test('an address that resolves to nothing stops the run and names the variable',
   assert.throws(() => endpoint(provider({ base_url_env: 'ZOE_TEST_NOTHING' }), 'm'), /ZOE_TEST_NOTHING/);
   assert.throws(() => endpoint(provider({}), 'm'), /no address/);
 });
+
+test('makeSeamlessLoop safely returns original buffer when input cannot be processed', async () => {
+  const { makeSeamlessLoop } = await import('../src/proxy.mjs');
+  const dummy = Buffer.from('not-a-video-stream');
+  const out = makeSeamlessLoop(dummy);
+  assert.ok(Buffer.isBuffer(out));
+  assert.equal(out.toString(), dummy.toString());
+});

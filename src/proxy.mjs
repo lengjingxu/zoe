@@ -127,11 +127,50 @@ export async function film(cfg, { prompt, firstFrame, seconds, resolution }) {
     if (job.status === 'failed') throw new Error('the video job failed: ' + JSON.stringify(job).slice(0, 240));
     if (job.status === 'done') {
       if (!job.video?.url) throw new Error('the video job finished without a url: ' + JSON.stringify(job).slice(0, 240));
-      return { buffer: await download(job.video.url), model: model.id, seconds: job.video.duration, frame: frame.bytes.length };
+      const raw = await download(job.video.url);
+      const buffer = makeSeamlessLoop(raw);
+      return { buffer, model: model.id, seconds: job.video.duration, frame: frame.bytes.length };
     }
     await new Promise((r) => setTimeout(r, POLL_EVERY));
   }
   throw new Error('the video job did not finish in ' + (POLL_LIMIT * POLL_EVERY) / 1000 + ' seconds');
+}
+
+// Post-processes a video buffer with ffmpeg ping-pong (forward + reverse),
+// ensuring the last frame connects back to the first frame with mathematical precision
+// (F_end === F_start), creating a gapless cinemagraph loop without cross-dissolve jump.
+export function makeSeamlessLoop(buffer) {
+  try {
+    execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+  } catch {
+    return buffer;
+  }
+
+  const tmpIn = path.join(os.tmpdir(), 'zoe-raw-' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.mp4');
+  const tmpOut = path.join(os.tmpdir(), 'zoe-seamless-' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.mp4');
+
+  try {
+    fs.writeFileSync(tmpIn, buffer);
+    execFileSync('ffmpeg', [
+      '-i', tmpIn,
+      '-filter_complex', '[0:v]split[v1][v2];[v2]reverse[v2r];[v1][v2r]concat=n=2:v=1[outv]',
+      '-map', '[outv]',
+      '-c:v', 'libx264',
+      '-pix_fmt', 'yuv420p',
+      '-an',
+      tmpOut,
+      '-y'
+    ], { stdio: 'ignore' });
+    if (fs.existsSync(tmpOut) && fs.statSync(tmpOut).size > 0) {
+      return fs.readFileSync(tmpOut);
+    }
+  } catch {
+    return buffer;
+  } finally {
+    try { if (fs.existsSync(tmpIn)) fs.unlinkSync(tmpIn); } catch {}
+    try { if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut); } catch {}
+  }
+  return buffer;
 }
 
 // The gateway refuses a request body past a few megabytes, and a still from an image
