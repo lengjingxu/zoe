@@ -3,11 +3,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { resolve, providerOf } from '../src/models.mjs';
+import { resolve, resolveAll, providerOf } from '../src/models.mjs';
 import { load, save, prune, remember, rotate } from '../src/state.mjs';
 
 const config = { models: { priority: ['xai/grok-imagine-image-2.0', 'openai/gpt-image-2'] }, providers: [] };
 const client = (ids) => ids.map((id) => ({ id, provider_id: id.split('/')[0] }));
+
+test('resolveAll returns candidate models in priority order', () => {
+  const all = resolveAll(config, client(['openai/gpt-image-2', 'xai/grok-imagine-image-2.0']));
+  assert.deepEqual(all.map((m) => m.id), ['xai/grok-imagine-image-2.0', 'openai/gpt-image-2']);
+});
 
 test('grok wins when the client has it', () => {
   const pick = resolve(config, client(['openai/gpt-image-2', 'xai/grok-imagine-image-2.0']));

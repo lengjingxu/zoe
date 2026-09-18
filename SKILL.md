@@ -114,7 +114,13 @@ one real object from the hour in it. Nothing here is picked off a list and nothi
 rotated: she leans into the screen with the cursor stalled on the same line, holds two
 cables apart and reads the one in her other hand, pushes back from a finished board with
 her eyes still on it. The same summary decides how she holds the paper when this hour has
-one. A pose that would fit any hour is the one to avoid, and two hours in a row should not
+one.
+
+What she is doing is a state, not the middle of a move: something she could hold for the six
+seconds of the loop without changing. Nothing half-finished — a hand still travelling to
+something, a cable on its way into its socket, anything on its way into or out of frame —
+because the clip cannot finish it, and a video model asked to hold that frame drifts
+instead. A pose that would fit any hour is the one to avoid, and two hours in a row should not
 look like the same hour.
 
 After eight in the evening, work the `evening` line of the preset in as well: the day is off, and
@@ -192,9 +198,13 @@ desktop, under the icons. The clip lands next to the wallpapers, as `loop_<times
 `zoe motion` prints that text on its own if you want to read it, and `film --prompt FILE`
 sends your own instead.
 
+The two halves split the work: the still decides what she holds and how, and the clip keeps it
+where it is. So the action in the still has to be one she can hold without moving.
+
 The text asks for the smallest motion there is — breathing, blinking, hair and cloth
-drifting — and for no action at all: nobody stands, turns, crosses their legs or lifts a
-cup, and nothing new appears. The clip plays behind the icons over and over, so it
+drifting — and for no action at all: nobody sits down or gets up, turns, crosses their legs
+or reaches for anything, nothing new appears, and whatever the still has her holding stays
+where it is. The clip plays behind the icons over and over, so it
 also asks for the last frame to land on the first one, for nothing that comes round on a
 beat, and for the light to stay exactly as it is. A seam, a beat or a picture that slowly
 brightens and darkens is what makes a loop feel like a loop, and all three are visible

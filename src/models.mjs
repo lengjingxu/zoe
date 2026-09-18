@@ -17,6 +17,19 @@ export function resolve(config, available) {
   );
 }
 
+export function resolveAll(config, available) {
+  const source = available || configured(config);
+  const ids = source.map((m) => m.id);
+  const hits = [];
+  for (const want of (config.models.priority || [])) {
+    const hit = matches(want, ids);
+    if (hit && !hits.some((h) => h.id === hit)) {
+      hits.push({ id: hit, provider_id: providerOf(source, hit), wanted: want });
+    }
+  }
+  return hits;
+}
+
 export function providerOf(list, id) {
   const hit = list.find((m) => m.id === id);
   return hit ? hit.provider_id : null;
