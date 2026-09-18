@@ -212,12 +212,16 @@ picked    : grok-imagine-image-2.0
 ```
 
 The gateway is OpenAI-shaped: `/images/generations`, `/images/edits`,
-`/videos/generations` and `/videos/{request_id}`. Both the address and the key are read from the environment variables the provider
-names, never from the file; an empty one stops the run and says which variable it
-wanted. `base_url_env` is what keeps a private gateway out of a config you might publish,
-and a literal `base_url` still works for a gateway anyone can reach. The ids under
-`models` are the ids the gateway serves, so list
+`/videos/generations` and `/videos/{request_id}`. Both the address and the key are read
+from the environment variables the provider names, never from the file; an empty one
+stops the run and says which variable it wanted. `base_url_env` is what keeps a private
+gateway out of a config you might publish, and a literal `base_url` still works for a
+gateway anyone can reach. The ids under `models` are the ids the gateway serves, so list
 them once (`curl $BASE/models`) and paste them in.
+
+A run started by a scheduler or an agent gets a non-interactive shell, which reads
+`~/.zshenv` and not `~/.zshrc`; put the exports where every shell that runs zoe will see
+them.
 
 A wildcard such as `grok-imagine-image*` follows the newest numbered variant of that
 family. If nothing on the list is there, zoe says so and stops; drawing with a model
