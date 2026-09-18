@@ -251,7 +251,7 @@ async function cmdFilm(cfg) {
     resolution: typeof argv.resolution === 'string' ? argv.resolution : null
   });
   fs.writeFileSync(out, clip.buffer);
-  log('filmed with ' + clip.model + ' for ' + clip.seconds + 's -> ' + out);
+  log('filmed with ' + clip.model + ' for ' + clip.seconds + 's from a ' + Math.round(clip.frame / 1024) + 'KB first frame -> ' + out);
   console.log(out);
 }
 
