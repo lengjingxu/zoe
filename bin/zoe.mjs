@@ -90,13 +90,15 @@ async function cmdModels(cfg) {
 async function cmdGather(cfg) {
   const hours = num(argv.hours, cfg.hours);
   const out = await collect(cfg, { hours });
+  // With --json the whole of stdout is the JSON, so `> /tmp/zoe-data.json` writes a file
+  // that parses. The readable listing is the other mode.
+  if (argv.json) return console.log(JSON.stringify(out, null, 2));
   const counts = out.items.reduce((acc, i) => ({ ...acc, [i.source]: (acc[i.source] || 0) + 1 }), {});
   log('window: last ' + hours + 'h   items: ' + out.items.length + '  ' + JSON.stringify(counts));
   for (const item of out.items.slice(-num(argv.limit, 40))) {
     console.log('  ' + new Date(item.at).toLocaleTimeString() + '  ' + item.source.padEnd(11) + '  ' + (item.project || '-').padEnd(16) + '  ' + item.text.slice(0, 120));
   }
   log('memory: ' + out.memory.length + ' long-term notes');
-  if (argv.json) console.log(JSON.stringify(out, null, 2));
 }
 
 // The room: what stands in it now, what it could take out of the long memory, and what
@@ -199,9 +201,9 @@ async function cmdLoop(cfg) {
   log('playing ' + state.file + ' at the desktop layer (pid ' + state.pid + ')');
 }
 
-// When paper was last up, whether the gap is clear, which notes the hour fits, the ways
-// she can hold it and the layout the check wants word for word. The decision stays with
-// the agent; this only puts the facts in front of it.
+// When paper was last up, whether the gap is clear, which notes the hour fits and the
+// layout the check wants word for word. How she holds it is written with the rest of the
+// action; the decision stays with the agent, and this only puts the facts in front of it.
 async function cmdNote(cfg) {
   const preset = loadPreset(cfg.preset);
   const state = store.load(STATE_PATH);
@@ -210,7 +212,6 @@ async function cmdNote(cfg) {
   console.log('gap       : ' + view.gap + ' h between two notes' + (view.quiet ? ' -> clear this hour' : ' -> too soon this hour'));
   console.log('hour      : ' + String(view.hour).padStart(2, '0') + ':00 -> ' + (view.fits.length ? view.fits.map((n) => n.id).join(', ') : 'nothing fits this hour'));
   view.notes.forEach((n, i) => console.log((i ? '            ' : 'notes     : ') + n.id.padEnd(7) + n.line + '   ' + whenNote(n)));
-  view.poses.forEach((p, i) => console.log((i ? '            ' : 'poses     : ') + p.id.padEnd(9) + p.desc));
   console.log('layout    : ' + view.layout);
   console.log('then      : zoe prompt --write FILE --note ID, and zoe show ... --note ID');
 }
@@ -335,7 +336,7 @@ function usage() {
     '  motion                   the text that turns the picture on screen into a loop',
     '  loop --video FILE        play a movie at the desktop layer, under the icons',
     '  loop --stop              take the movie off the desktop',
-    '  note                     when paper was last up, what it could say, how she holds it',
+    '  note                     when paper was last up, and what it could say this hour',
     '  status [--hours N]       what the last hours drew, the pool, the desktop'
   ].join(String.fromCharCode(10)));
 }
