@@ -205,16 +205,18 @@ picked    : grok-imagine-image-2.0
     "video_priority": ["grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] },
   "providers": [
     { "id": "proxy",
-      "base_url": "http://your-gateway:8080/v1",
+      "base_url_env": "ZOE_BASE_URL",
       "api_key_env": "GPT_IMAGE_API_KEY",
       "models": ["grok-imagine-image-2.0", "gpt-image-2",
                  "grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] } ] }
 ```
 
 The gateway is OpenAI-shaped: `/images/generations`, `/images/edits`,
-`/videos/generations` and `/videos/{request_id}`. The key is read from the environment
-variable the provider names and never from a file; an empty variable stops the run and
-says which one it wanted. The ids under `models` are the ids the gateway serves, so list
+`/videos/generations` and `/videos/{request_id}`. Both the address and the key are read from the environment variables the provider
+names, never from the file; an empty one stops the run and says which variable it
+wanted. `base_url_env` is what keeps a private gateway out of a config you might publish,
+and a literal `base_url` still works for a gateway anyone can reach. The ids under
+`models` are the ids the gateway serves, so list
 them once (`curl $BASE/models`) and paste them in.
 
 A wildcard such as `grok-imagine-image*` follows the newest numbered variant of that
