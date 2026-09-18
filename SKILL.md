@@ -123,12 +123,9 @@ because the clip cannot finish it, and a video model asked to hold that frame dr
 instead.
 
 Because generation uses image-to-image (`--ref last`) to preserve the room layout, windows,
-and keepsakes, the prompt MUST explicitly instruct the model to break away from the reference
-character posture. Do NOT keep her standing in the same pose. The prompt should explicitly state:
-"Her pose is completely changed from the reference image, not repeating the previous posture.
-She is now [seated in the desk chair / leaning over the desk / lounging on the low sofa / resting
-her chin in her palm / leaning against the windowsill]..." Varied postures (sitting, reclining,
-leaning, focused desk work) give authentic companionship across hours.
+and keepsakes, the prompt must say her pose is completely changed from the reference image.
+Name the new pose in the same sentences that came from the hour summary. Do not pick from a
+posture list, and do not keep the last picture's stance.
 
 After eight in the evening, work the `evening` line of the preset in as well: the day is off, and
 the picture knows it.
