@@ -1,10 +1,14 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { resolve, configured } from './models.mjs';
 
 const TIMEOUT = 300e3;
 const POLL_EVERY = 10e3;
 const POLL_LIMIT = 60;
+const FRAME_LIMIT = 1e6;
+const FRAME_WIDTH = 1280;
 
 // The models zoe draws with come from a proxy named in the config, an OpenAI-compatible
 // gateway with its own budget. This file is the only place zoe talks to a model.
@@ -83,8 +87,8 @@ export async function film(cfg, { prompt, firstFrame, seconds, resolution }) {
   const model = filmModel(cfg);
   const { base, key } = endpoint(cfg, model.id);
 
-  const type = firstFrame.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-  const image = { url: 'data:' + type + ';base64,' + fs.readFileSync(firstFrame).toString('base64') };
+  const frame = frameBytes(firstFrame);
+  const image = { url: 'data:' + frame.type + ';base64,' + frame.bytes.toString('base64') };
   const started = await send(base + '/videos/generations', key, {
     model: model.id,
     prompt,
@@ -99,11 +103,25 @@ export async function film(cfg, { prompt, firstFrame, seconds, resolution }) {
     if (job.status === 'failed') throw new Error('the video job failed: ' + JSON.stringify(job).slice(0, 240));
     if (job.status === 'done') {
       if (!job.video?.url) throw new Error('the video job finished without a url: ' + JSON.stringify(job).slice(0, 240));
-      return { buffer: await download(job.video.url), model: model.id, seconds: job.video.duration };
+      return { buffer: await download(job.video.url), model: model.id, seconds: job.video.duration, frame: frame.bytes.length };
     }
     await new Promise((r) => setTimeout(r, POLL_EVERY));
   }
   throw new Error('the video job did not finish in ' + (POLL_LIMIT * POLL_EVERY) / 1000 + ' seconds');
+}
+
+// The gateway refuses a request body past a few megabytes, and a still from an image
+// model can be one. Past the limit the picture goes up shrunk to the width the clip
+// comes back in; under it the bytes go up as they are.
+export function frameBytes(file) {
+  const raw = fs.readFileSync(file);
+  const png = file.toLowerCase().endsWith('.png');
+  if (raw.length <= FRAME_LIMIT) return { bytes: raw, type: png ? 'image/png' : 'image/jpeg' };
+  const small = path.join(os.tmpdir(), 'zoe-frame-' + Date.now() + '.jpg');
+  execFileSync('sips', ['-Z', String(FRAME_WIDTH), '-s', 'format', 'jpeg', '-s', 'formatOptions', '72', file, '--out', small], { stdio: 'ignore' });
+  const shrunk = fs.readFileSync(small);
+  fs.unlinkSync(small);
+  return { bytes: shrunk, type: 'image/jpeg' };
 }
 
 async function bytes(out, base, key) {
