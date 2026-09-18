@@ -139,6 +139,13 @@ named in the prompt without being in the list at all.
 What she is doing is not a list. It is invented for the hour out of the work itself, and the
 hour is told in `items`; the desk carries this hour, the keepsakes carry the memory.
 
+The style paragraph is the look, and it is worth writing literally. Naming the works behind
+it - City Hunter, Cat's Eye - moved the subject and the mood and left the line alone. What
+moved the line was saying how it is drawn: fine even ink with the outline no heavier than the
+interior lines, flat cel tones, hair as a few solid masses with crisp highlight bands, adult
+proportions, backgrounds painted in one-point perspective. The same prompt in English and in
+Chinese produced the same picture.
+
 ## The prompt
 
 The prompt for the hour is a rewrite of the prompt that drew the last one. `zoe prompt`
@@ -213,6 +220,21 @@ them once (`curl $BASE/models`) and paste them in.
 A wildcard such as `grok-imagine-image*` follows the newest numbered variant of that
 family. If nothing on the list is there, zoe says so and stops; drawing with a model
 nobody asked for is worse than drawing nothing.
+
+### What a gateway actually serves
+
+The list a provider returns is not the list it draws with. One gateway tested here offered
+nineteen image ids and accepted five on `/images/generations`: `gpt-image-1.5`, `gpt-image-2`,
+`grok-imagine-image`, `grok-imagine-image-quality` and `grok-imagine-image-2.0`. The rest came
+back `HTTP 400` with those five named in the message, which is the quickest way to find the
+real list.
+
+Size is worth checking per model rather than per gateway. Asked for 1792x1024, the three grok
+models always answered 1280x720, the 16:9 the desktop wants, while `gpt-image-1.5` answered
+1672x941 once and 1536x1024 twice, which is 3:2 and gets cropped. The grok models draw in ten
+to thirty-five seconds; the two gpt models take fifty to a hundred.
+
+Both gpt models take `/images/edits`, so either can draw the next hour from the last one.
 
 ## Setting the wallpaper
 
