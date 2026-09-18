@@ -9,6 +9,7 @@ import * as roomMod from '../src/room.mjs';
 import * as modelList from '../src/models.mjs';
 import * as wallpaper from '../src/wallpaper.mjs';
 import * as store from '../src/state.mjs';
+import { paper } from '../src/note.mjs';
 import * as movie from '../src/movie.mjs';
 import { animate } from '../src/motion.mjs';
 import * as proxy from '../src/proxy.mjs';
@@ -52,6 +53,8 @@ async function main() {
       return cmdMotion(cfg);
     case 'loop':
       return cmdLoop(cfg);
+    case 'note':
+      return cmdNote(cfg);
     case 'status':
       return cmdStatus(cfg);
     default:
@@ -196,6 +199,31 @@ async function cmdLoop(cfg) {
   log('playing ' + state.file + ' at the desktop layer (pid ' + state.pid + ')');
 }
 
+// When paper was last up, whether the gap is clear, which notes the hour fits, the ways
+// she can hold it and the layout the check wants word for word. The decision stays with
+// the agent; this only puts the facts in front of it.
+async function cmdNote(cfg) {
+  const preset = loadPreset(cfg.preset);
+  const state = store.load(STATE_PATH);
+  const view = paper(state, preset, Date.now());
+  console.log('paper     : ' + (view.last ? 'up ' + ago(view.hours) + ' ago, ' + view.last.note : 'never up in ' + state.history.length + ' recorded hour(s)'));
+  console.log('gap       : ' + view.gap + ' h between two notes' + (view.quiet ? ' -> clear this hour' : ' -> too soon this hour'));
+  console.log('hour      : ' + String(view.hour).padStart(2, '0') + ':00 -> ' + (view.fits.length ? view.fits.map((n) => n.id).join(', ') : 'nothing fits this hour'));
+  view.notes.forEach((n, i) => console.log((i ? '            ' : 'notes     : ') + n.id.padEnd(7) + n.line + '   ' + whenNote(n)));
+  view.poses.forEach((p, i) => console.log((i ? '            ' : 'poses     : ') + p.id.padEnd(9) + p.desc));
+  console.log('layout    : ' + view.layout);
+  console.log('then      : zoe prompt --write FILE --note ID, and zoe show ... --note ID');
+}
+
+function ago(hours) {
+  return hours < 1 ? Math.round(hours * 60) + ' min' : hours.toFixed(1) + ' h';
+}
+
+function whenNote(note) {
+  if (note.hours) return note.hours.join(',');
+  return 'any hour' + (note.mood ? ' (' + note.mood + ')' : '');
+}
+
 // What the last hours did, so the next one can avoid repeating them.
 async function cmdStatus(cfg) {
   const state = store.load(STATE_PATH);
@@ -307,6 +335,7 @@ function usage() {
     '  motion                   the text that turns the picture on screen into a loop',
     '  loop --video FILE        play a movie at the desktop layer, under the icons',
     '  loop --stop              take the movie off the desktop',
+    '  note                     when paper was last up, what it could say, how she holds it',
     '  status [--hours N]       what the last hours drew, the pool, the desktop'
   ].join(String.fromCharCode(10)));
 }

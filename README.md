@@ -69,6 +69,7 @@ zoe room                          # what stands in the room, and what it could t
 zoe room --write FILE             # add or retire keepsakes
 zoe prompt                        # the text the last hour drew with
 zoe prompt --write FILE           # hand over a new one: checked, then stored
+zoe note                          # when paper was last up, what it could say, how she holds it
 zoe models                        # the model priority list, and which one wins
 zoe last                          # the picture the last hour left, to draw from
 zoe draw [--ref FILE|none]        # the gateway draws this hour, prints the file
@@ -181,6 +182,9 @@ that one picture because the writing is the whole point of it.
 The note is one of several ways the hour can answer — a keepsake arriving, a keepsake
 leaving, a different pose, a different view. It is the loudest of them, so it stays
 rare: nothing has held paper for `note_gap_hours`, and the hour has to earn it.
+`zoe note` is what the agent reads before writing that paragraph: when paper was last up,
+whether the gap has passed, the notes this hour fits, the four ways she can hold paper,
+and the layout the check wants word for word. Left to guess at the gap, it never drew one.
 
 `note_layout` brings the paper out at arm's length toward the camera so the characters
 still read at wallpaper size, while the rest of the frame stays open for icons. A note

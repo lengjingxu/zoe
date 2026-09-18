@@ -83,6 +83,10 @@ node bin/zoe.mjs prompt --write /tmp/zoe-prompt.txt            # no note this ho
 node bin/zoe.mjs prompt --write /tmp/zoe-prompt.txt --note meal # note id from the preset
 ```
 
+Before you write it, `node bin/zoe.mjs note` says whether paper is due: when it was last
+up, whether `note_gap_hours` has passed, which notes this hour fits, the four ways she can
+hold paper, and the `note_layout` paragraph the check wants word for word.
+
 The check refuses the write and names what is missing, so a prompt that lost the layout
 or a keepsake never reaches the image model.
 
@@ -92,7 +96,8 @@ Paper is one mode of five. Two hours in a row should not speak the same way.
 
 - **A note.** One line of Chinese, held so it reads at wallpaper size. Rare: only when
   nothing has held paper for `note_gap_hours`, and only when the hour earns it (a meal
-  hour, the end of something shipped, a long night). Use the id from `preset.notes`.
+  hour, the end of something shipped, a long night). `zoe note` prints the gap, the ids and
+  the way she holds it.
 - **A keepsake arriving.** A memory that becomes an object in the room, in this picture.
 - **A keepsake leaving.** Something old goes; the next prompt stops naming it.
 - **What she is doing.** Invented for this hour, out of the work itself. There is no list.
