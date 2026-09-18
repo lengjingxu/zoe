@@ -22,13 +22,18 @@ export function filmModel(cfg) {
   return resolve({ ...cfg, models: { priority } }, configured(cfg));
 }
 
-function endpoint(cfg, id) {
+// Where the gateway lives and the key that opens it both come from the environment
+// variables this provider names, so the config file carries neither.
+export function endpoint(cfg, id) {
   const provider = (cfg.providers || []).find((p) => (p.models || []).includes(id));
   if (!provider) throw new Error('no provider in the config lists ' + id);
+  const address = provider.base_url_env || '';
+  const base = address ? process.env[address] : provider.base_url;
+  if (!base) throw new Error(provider.id + ' has no address: set ' + (address || 'base_url') + (address ? ', that variable is empty' : ' in the config'));
   const from = provider.api_key_env || '';
   const key = process.env[from];
   if (!key) throw new Error(provider.id + ' reads its key from ' + (from || '(no api_key_env)') + ', and that variable is empty');
-  return { base: String(provider.base_url).replace(/\/+$/, ''), key, provider: provider.id };
+  return { base: String(base).replace(/\/+$/, ''), key, provider: provider.id };
 }
 
 async function send(url, key, body, form) {
