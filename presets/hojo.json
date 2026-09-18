@@ -114,23 +114,5 @@
       "mood": "在铺开"
     }
   ],
-  "notePoses": [
-    {
-      "id": "N-hold",
-      "desc": "turned to us and holding a small square of paper out at full arm length, flat and square to the camera, eyes on us over the top of it"
-    },
-    {
-      "id": "N-board",
-      "desc": "holding a small whiteboard up with both hands, its face square to the camera, a pen still in one hand"
-    },
-    {
-      "id": "N-glass",
-      "desc": "pressing a sticky note flat against the window glass beside her and leaning back out of its way, face turned to us"
-    },
-    {
-      "id": "N-up",
-      "desc": "holding the paper up above her head at full arm length, face square to the camera, chin up"
-    }
-  ],
   "idle": "alone at the window, stretching after a long day, watching the view instead of the screen"
 }

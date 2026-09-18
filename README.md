@@ -123,7 +123,6 @@ A preset is the art direction, and it is data, not code:
   "room": "where a kept thing can stand: the shelf, the windowsill, the wall",
   "notes":        [{ "id": "meal", "line": "该吃饭了", "hours": [11, 12, 13] }],
   "note_gap_hours": 4,
-  "notePoses":    [{ "id": "N-hold", "desc": "holding the paper out toward the camera" }],
   "note_layout":  "where the paper sits so it reads, and what stays open",
   "idle": "what she does when there is nothing to answer"
 }
@@ -137,8 +136,10 @@ least-recently-used, checks `zoe status` so it does not repeat the last hour, an
 which id it used in `zoe show`. The view can also be a place that came up in the memory,
 named in the prompt without being in the list at all.
 
-What she is doing is not a list. It is invented for the hour out of the work itself, and the
-hour is told in `items`; the desk carries this hour, the keepsakes carry the memory.
+What she is doing is not a list. The hour is written down first as a sentence or two - what
+the work was and where it stands, out of `items` and `memory` together, which is also the
+`--topic` that gets recorded - and her action is drawn from that. The desk carries this hour,
+the keepsakes carry the memory.
 
 The style paragraph is the look, and it is worth writing literally. Naming the works behind
 it - City Hunter, Cat's Eye - moved the subject and the mood and left the line alone. What
@@ -183,8 +184,8 @@ The note is one of several ways the hour can answer — a keepsake arriving, a k
 leaving, a different pose, a different view. It is the loudest of them, so it stays
 rare: nothing has held paper for `note_gap_hours`, and the hour has to earn it.
 `zoe note` is what the agent reads before writing that paragraph: when paper was last up,
-whether the gap has passed, the notes this hour fits, the four ways she can hold paper,
-and the layout the check wants word for word. Left to guess at the gap, it never drew one.
+whether the gap has passed, the notes this hour fits, and the layout the check wants word
+for word. Left to guess at the gap, it never drew one.
 
 `note_layout` brings the paper out at arm's length toward the camera so the characters
 still read at wallpaper size, while the rest of the frame stays open for icons. A note
