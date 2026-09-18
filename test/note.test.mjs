@@ -10,7 +10,6 @@ const preset = {
     { id: 'sleep', line: '该睡了', hours: [0, 1, 2] },
     { id: 'push', line: '别急', mood: '在攻坚' }
   ],
-  notePoses: [{ id: 'N-hold', desc: 'holding it out' }]
 };
 
 const at = (hours, minutes = 0) => new Date(2026, 8, 18, hours, minutes).getTime();
@@ -40,8 +39,9 @@ test('the hour keeps only the notes that name it, plus the ones that fit any hou
   assert.deepEqual(paper({ history: [] }, preset, at(2)).fits.map((n) => n.id), ['sleep', 'push']);
 });
 
-test('the ways she holds paper and the layout travel with the answer', () => {
+test('the layout the check wants travels with the answer, and no pose list does', () => {
   const view = paper({ history: [] }, preset, at(12));
   assert.equal(view.layout, 'HELD-FORWARD');
-  assert.deepEqual(view.poses.map((p) => p.id), ['N-hold']);
+  assert.deepEqual(Object.keys(view).filter((k) => k.startsWith('pose')), [], 
+    'how she holds it is written from the hour, so there is nothing to pick from here');
 });

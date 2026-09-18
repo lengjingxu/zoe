@@ -92,19 +92,5 @@
       "mood": "在铺开"
     }
   ],
-  "notePoses": [
-    {
-      "id": "N-hold",
-      "desc": "turned toward us and holding up a small square of paper, flat and square to the camera"
-    },
-    {
-      "id": "N-board",
-      "desc": "holding a small whiteboard up with both hands, its face square to the camera"
-    },
-    {
-      "id": "N-glass",
-      "desc": "pressing a note flat against the window glass beside her"
-    }
-  ],
   "idle": "standing at the window, doing nothing in particular"
 }

@@ -84,8 +84,9 @@ node bin/zoe.mjs prompt --write /tmp/zoe-prompt.txt --note meal # note id from t
 ```
 
 Before you write it, `node bin/zoe.mjs note` says whether paper is due: when it was last
-up, whether `note_gap_hours` has passed, which notes this hour fits, the four ways she can
-hold paper, and the `note_layout` paragraph the check wants word for word.
+up, whether `note_gap_hours` has passed, which notes this hour fits, and the
+`note_layout` paragraph the check wants word for word. How she holds it is part of the
+action below, so it comes out of the same summary.
 
 The check refuses the write and names what is missing, so a prompt that lost the layout
 or a keepsake never reaches the image model.
@@ -96,8 +97,8 @@ Paper is one mode of five. Two hours in a row should not speak the same way.
 
 - **A note.** One line of Chinese, held so it reads at wallpaper size. Rare: only when
   nothing has held paper for `note_gap_hours`, and only when the hour earns it (a meal
-  hour, the end of something shipped, a long night). `zoe note` prints the gap, the ids and
-  the way she holds it.
+  hour, the end of something shipped, a long night). `zoe note` prints the gap and the ids;
+  the way she holds it belongs to this hour, like anything else she does.
 - **A keepsake arriving.** A memory that becomes an object in the room, in this picture.
 - **A keepsake leaving.** Something old goes; the next prompt stops naming it.
 - **What she is doing.** Invented for this hour, out of the work itself. There is no list.
@@ -106,13 +107,15 @@ Paper is one mode of five. Two hours in a row should not speak the same way.
 
 ### What she is doing
 
-There is no list of poses and no rotation to stay off. Read `items` and `memory` first, name
-the hour to yourself in a word - deep in one thing, spread across several, stuck, empty -
-then invent the one thing she is doing that says the same thing: leaning into the screen
-with the cursor stalled on the same line, holding two cables apart and reading the one in
-her other hand, pushing back from a finished board with her eyes still on it. Put one real
-object from the hour into the same sentence. A pose that would fit any hour is the one to
-avoid, and two hours in a row should not look like the same hour.
+Write the hour down before you write her: one or two sentences of what the work actually
+was and where it stands, out of `items` and `memory` together. That summary is what
+`show --topic` records, and it is where her action comes from - one concrete thing, with
+one real object from the hour in it. Nothing here is picked off a list and nothing is
+rotated: she leans into the screen with the cursor stalled on the same line, holds two
+cables apart and reads the one in her other hand, pushes back from a finished board with
+her eyes still on it. The same summary decides how she holds the paper when this hour has
+one. A pose that would fit any hour is the one to avoid, and two hours in a row should not
+look like the same hour.
 
 After eight in the evening, work the `evening` line of the preset in as well: the day is off, and
 the picture knows it.
