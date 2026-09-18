@@ -4,6 +4,73 @@ import AVFoundation
 // A loop of video pinned to the desktop level: under the icons, over the
 // wallpaper. macOS has no supported way to set a movie as wallpaper, so the
 // movie becomes a window at the same layer the wallpaper itself occupies.
+//
+// The clip comes back from the video model with a last frame that does not sit
+// exactly on the first one, and that difference reads as a jump every time the
+// loop turns over. So the tail is dissolved into the head before the movie
+// plays: the piece that repeats begins on the frame the old ending was fading
+// into, and ends on that same frame, so the loop closes on itself.
+
+let FADE = 0.4
+
+@MainActor
+func loopItem(for url: URL) -> AVPlayerItem {
+    let asset = AVURLAsset(url: url)
+    let seconds = CMTimeGetSeconds(asset.duration)
+    let source = asset.tracks(withMediaType: .video).first
+    if source == nil || seconds <= FADE * 2 {
+        FileHandle.standardError.write(Data(
+            "zoe-desktop-movie: \(url.lastPathComponent) is not a clip to loop (\(seconds)s, no usable video track)\n".utf8))
+        exit(1)
+    }
+
+    let whole = CMTime(seconds: seconds, preferredTimescale: 600)
+    let fade = CMTime(seconds: FADE, preferredTimescale: 600)
+    let body = CMTimeSubtract(whole, fade)
+
+    let composition = AVMutableComposition()
+    let head = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+    let tail = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+    guard let head, let tail else {
+        FileHandle.standardError.write(Data("zoe-desktop-movie: cannot lay out a loop over \(url.lastPathComponent)\n".utf8))
+        exit(1)
+    }
+
+    do {
+        // The clip without its last half second, and separately that last half second,
+        // both starting at zero so the fade happens at the top of the loop.
+        try head.insertTimeRange(CMTimeRange(start: .zero, duration: body), of: source!, at: .zero)
+        try tail.insertTimeRange(CMTimeRange(start: body, duration: fade), of: source!, at: .zero)
+    } catch {
+        FileHandle.standardError.write(Data("zoe-desktop-movie: cannot cut \(url.lastPathComponent): \(error)\n".utf8))
+        exit(1)
+    }
+
+    // The tail sits at full strength underneath while the head fades in over
+    // it. Only one opacity moves, so the two add up to one picture the whole
+    // way through and the screen does not dip dark in the middle of the join.
+    let window = CMTimeRange(start: .zero, duration: fade)
+    let headIn = AVMutableVideoCompositionLayerInstruction(assetTrack: head)
+    headIn.setTransform(source!.preferredTransform, at: .zero)
+    headIn.setOpacityRamp(fromStartOpacity: 0, toEndOpacity: 1, timeRange: window)
+
+    let tailUnder = AVMutableVideoCompositionLayerInstruction(assetTrack: tail)
+    tailUnder.setTransform(source!.preferredTransform, at: .zero)
+
+    let instruction = AVMutableVideoCompositionInstruction()
+    instruction.timeRange = CMTimeRange(start: .zero, duration: body)
+    instruction.layerInstructions = [headIn, tailUnder]
+
+    let shown = source!.naturalSize.applying(source!.preferredTransform)
+    let video = AVMutableVideoComposition()
+    video.renderSize = CGSize(width: abs(shown.width), height: abs(shown.height))
+    video.frameDuration = CMTime(value: 1, timescale: CMTimeScale(max(1, source!.nominalFrameRate.rounded())))
+    video.instructions = [instruction]
+
+    let item = AVPlayerItem(asset: composition)
+    item.videoComposition = video
+    return item
+}
 
 @MainActor
 func run() {
@@ -22,7 +89,7 @@ func run() {
     func open(_ screen: NSScreen) {
         let queue = AVQueuePlayer()
         queue.isMuted = true
-        loopers.append(AVPlayerLooper(player: queue, templateItem: AVPlayerItem(url: url)))
+        loopers.append(AVPlayerLooper(player: queue, templateItem: loopItem(for: url)))
 
         let window = NSWindow(
             contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
@@ -66,3 +133,4 @@ func run() {
 }
 
 MainActor.assumeIsolated { run() }
+

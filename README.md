@@ -168,8 +168,8 @@ change. The text for it comes from `~/.zoe/prompt.txt`, which the agent rewrites
 hour out of the previous one instead of starting from a blank page.
 
 The loop is the same idea with a smaller budget of movement: breathing, blinking, hair and
-cloth drifting, the light easing a shade, and no action at all. A single recognizable
-action is what makes a loop feel like a loop.
+cloth drifting, and no action at all. Anything you could name as an action is what makes a
+loop read as a repeat, because you see it come round again.
 
 ## The note
 
@@ -282,8 +282,9 @@ macOS has no supported way to set a video as wallpaper. zoe does not pretend
 otherwise: `zoe loop` builds a small Swift window (`native/DesktopMovie.swift`,
 compiled once into `~/.zoe/bin/`) pinned to `kCGDesktopWindowLevel` — above the
 wallpaper, below the icons, click-through, one window per display — and loops the file
-with `AVPlayerLooper`. `zoe show --image` stops the movie, because the desktop holds
-one thing at a time.
+with `AVPlayerLooper`, after dissolving the tail of the clip into its head so the frames that
+meet at the join are the same frame. `zoe show --image` stops the movie, because the desktop
+holds one thing at a time.
 
 ### What a loop costs
 
@@ -292,11 +293,16 @@ Measured here on one still of 1248x832 and the loop made from it:
 - **It is softer than the still.** At the default resolution the clip came back 672x448;
   at `--resolution 720p` it came back 1168x768. On a retina display the small one is a
   visible step down from the picture it was made from.
-- **The seam is close, not perfect.** Last frame against first frame lands near 26 dB, so
-  the jump back to the start is visible if you are looking for it. The prompt asks for a
-  seamless loop and the model approximates it; nobody guarantees it.
+- **The seam is closed on this side.** The clip comes back with a last frame near the first
+  one but not on it: 17 to 32 dB measured across three clips here, which reads as a jump
+  every time the loop turns over. `zoe loop` does not wait for the model to fix that. It cuts
+  the last 0.4 s off the clip, lays that piece under the head and dissolves it in over the
+  first 0.4 s, so the frames that meet at the join are the same frame and the light holds
+  steady through the change. What plays is 0.4 s shorter than the file on disk.
 - **The composition holds.** The first frame against the still it came from is around
   29 dB, and the subject stays where the layout rule put her.
+- **The join is rendered every frame.** The dissolve runs while the clip plays, so the composed
+  loop cost 6.7% of one core here against 2.5% for the same file played straight through.
 
 A movie is not free. It costs GPU and battery on a large display; if the fan matters
 more than the drift, stay with the stills.
