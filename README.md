@@ -266,15 +266,15 @@ zoe loop --video ~/Pictures/zoe/loop_....mp4   # play it, under the icons
 zoe loop --stop                     # take it off again
 ```
 
-`zoe motion` The first frame goes up as a data URL, so the body of the request is the picture. Past a
-megabyte on disk the still is shrunk to 1280 wide before it is encoded, because the
-gateway refuses a body that big; a still under that goes up untouched.
+`zoe motion` prints the loop from the preset: the locked-off camera, the ban on action, the
+words that ask for the last frame to land on the first, and the hold. `zoe film` pairs that
+text with the still, sends both, and polls until the clip is ready. The length and the size
+travel as fields on the request, not as words in the prompt: `--seconds` (6 by default) and
+`--resolution` (720p by default, which comes back 1168x768).
 
-prints the loop from the preset: the locked-off camera, the ban on action and
-the hold. `zoe film` pairs that text with the still, sends both, and polls until the
-clip is ready. The length and the size travel as fields on the request, not as words in
-the prompt: `--seconds` (6 by default) and `--resolution` (720p by default, which
-comes back 1168x768).
+The first frame goes up as a data URL, so the body of the request is the picture. Past a
+megabyte on disk the still is shrunk to 1280 wide before it is encoded, because the gateway
+refuses a body that big; a still under that goes up untouched.
 
 ### Getting a movie onto the desktop
 

@@ -185,9 +185,12 @@ desktop, under the icons. The clip lands next to the wallpapers, as `loop_<times
 sends your own instead.
 
 The text asks for the smallest motion there is — breathing, blinking, hair and cloth
-drifting, the light easing a shade — and for no action at all: nobody stands, turns,
-crosses their legs or lifts a cup, and nothing new appears. Keep it that way. One
-recognizable action is what makes a loop feel like a loop.
+drifting — and for no action at all: nobody stands, turns, crosses their legs or lifts a
+cup, and nothing new appears. The clip plays behind the icons over and over, so it
+also asks for the last frame to land on the first one, for nothing that comes round on a
+beat, and for the light to stay exactly as it is. A seam, a beat or a picture that slowly
+brightens and darkens is what makes a loop feel like a loop, and all three are visible
+within the first minute of watching. Keep it that way.
 
 ## An empty hour
 
