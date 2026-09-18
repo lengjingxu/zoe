@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { resolve, configured } from './models.mjs';
+import { resolve, resolveAll, configured } from './models.mjs';
 
 const TIMEOUT = 300e3;
 const POLL_EVERY = 10e3;
@@ -14,6 +14,11 @@ const FRAME_WIDTH = 1280;
 // gateway with its own budget. This file is the only place zoe talks to a model.
 export function drawModel(cfg) {
   return resolve(cfg, configured(cfg));
+}
+
+export function drawCandidates(cfg) {
+  const all = resolveAll(cfg, configured(cfg));
+  return all.length ? all : [drawModel(cfg)];
 }
 
 export function filmModel(cfg) {
@@ -63,24 +68,38 @@ async function get(url, key) {
 // from the picture already there, which keeps the room and the hand the way they were.
 export async function draw(cfg, { prompt, ref, size }) {
   if (!prompt?.trim()) throw new Error('nothing to draw: the prompt is empty');
-  const model = drawModel(cfg);
-  const { base, key } = endpoint(cfg, model.id);
+  const candidates = drawCandidates(cfg);
   const shape = size || cfg.size || '1792x1024';
+  const errors = [];
 
-  if (!ref) {
-    const out = await send(base + '/images/generations', key, { model: model.id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
-    return { buffer: await bytes(out, base, key), model: model.id };
+  for (const model of candidates) {
+    try {
+      const { base, key } = endpoint(cfg, model.id);
+      if (!ref) {
+        const out = await send(base + '/images/generations', key, { model: model.id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
+        return { buffer: await bytes(out, base, key), model: model.id };
+      }
+      if (!fs.existsSync(ref)) throw new Error('no picture at ' + ref + ' to draw from');
+
+      try {
+        const form = new FormData();
+        form.set('model', model.id);
+        form.set('prompt', prompt);
+        form.set('size', shape);
+        form.set('n', '1');
+        form.set('image', new Blob([fs.readFileSync(ref)], { type: 'image/jpeg' }), path.basename(ref));
+        const out = await send(base + '/images/edits', key, null, form);
+        return { buffer: await bytes(out, base, key), model: model.id, ref };
+      } catch {
+        const out = await send(base + '/images/generations', key, { model: model.id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
+        return { buffer: await bytes(out, base, key), model: model.id };
+      }
+    } catch (err) {
+      errors.push(model.id + ': ' + (err.message || String(err)));
+    }
   }
-  if (!fs.existsSync(ref)) throw new Error('no picture at ' + ref + ' to draw from');
 
-  const form = new FormData();
-  form.set('model', model.id);
-  form.set('prompt', prompt);
-  form.set('size', shape);
-  form.set('n', '1');
-  form.set('image', new Blob([fs.readFileSync(ref)], { type: 'image/jpeg' }), path.basename(ref));
-  const out = await send(base + '/images/edits', key, null, form);
-  return { buffer: await bytes(out, base, key), model: model.id, ref };
+  throw new Error('all candidate models failed to draw:' + String.fromCharCode(10) + '  ' + errors.join(String.fromCharCode(10) + '  '));
 }
 
 // Image to video, then the loop text decides what may move. The first frame has to be a
