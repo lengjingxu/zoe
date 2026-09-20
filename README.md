@@ -197,22 +197,22 @@ Every picture comes from one gateway, named in `~/.zoe/config.json`. `zoe models
 the priority list and prints what it will use, and what it skipped to get there:
 
 ```
-priority  : grok-imagine-image-2.0  ->  gpt-image-2
+priority  : grok-imagine-image-2.0  ->  gpt-image-2  ->  gemini-3.1-flash-image
 video     : grok-imagine-video-1.5  ->  grok-imagine-video-1.5-preview
-providers : proxy (5 models)
-available : grok-imagine-image-2.0, gpt-image-2, grok-imagine-video-1.5, ...
+providers : proxy (6 models)
+available : grok-imagine-image-2.0, gpt-image-2, gemini-3.1-flash-image, ...
 picked    : grok-imagine-image-2.0
 ```
 
 ```json
 { "models": {
-    "priority": ["grok-imagine-image-2.0", "gpt-image-2"],
+    "priority": ["grok-imagine-image-2.0", "gpt-image-2", "gemini-3.1-flash-image"],
     "video_priority": ["grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] },
   "providers": [
     { "id": "proxy",
       "base_url_env": "ZOE_BASE_URL",
       "api_key_env": "GPT_IMAGE_API_KEY",
-      "models": ["grok-imagine-image-2.0", "gpt-image-2",
+      "models": ["grok-imagine-image-2.0", "gpt-image-2", "gemini-3.1-flash-image",
                  "grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] } ] }
 ```
 
@@ -223,6 +223,9 @@ stops the run and says which variable it wanted. `base_url_env` is what keeps a 
 gateway out of a config you might publish, and a literal `base_url` still works for a
 gateway anyone can reach. The ids under `models` are the ids the gateway serves, so list
 them once (`curl $BASE/models`) and paste them in.
+
+Models named in `models.chat_image` use `/chat/completions` instead and read the
+picture from the message. This lets a Gemini image model use its own request shape.
 
 A run started by a scheduler or an agent gets a non-interactive shell, which reads
 `~/.zshenv` and not `~/.zshrc`; put the exports where every shell that runs zoe will see

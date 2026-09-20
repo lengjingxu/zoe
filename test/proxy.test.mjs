@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { frameBytes, endpoint } from '../src/proxy.mjs';
+import { frameBytes, endpoint, draw } from '../src/proxy.mjs';
 
 const TINY_JPEG =
   '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAx' +
@@ -55,4 +55,25 @@ test('makeSeamlessLoop safely returns original buffer when input cannot be proce
   const out = makeSeamlessLoop(dummy);
   assert.ok(Buffer.isBuffer(out));
   assert.equal(out.toString(), dummy.toString());
+});
+
+test('a chat-image model returns the image embedded in the message', async () => {
+  const url = 'data:image/jpeg;base64,' + TINY_JPEG;
+  const original = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    text: async () => JSON.stringify({ choices: [{ message: { images: [{ image_url: { url } }] } }] })
+  });
+  try {
+    const cfg = {
+      size: '1792x1024',
+      models: { priority: ['gemini-3.1-flash-image'], chat_image: ['gemini-3.1-flash-image'] },
+      providers: [{ id: 'proxy', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://localhost:1234/v1', models: ['gemini-3.1-flash-image'] }]
+    };
+    const drawn = await draw(cfg, { prompt: 'test picture' });
+    assert.equal(drawn.model, 'gemini-3.1-flash-image');
+    assert.ok(drawn.buffer.length > 10);
+  } finally {
+    global.fetch = original;
+  }
 });
