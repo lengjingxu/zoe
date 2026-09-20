@@ -77,6 +77,9 @@ this hour; do not start from a blank page and do not throw away what works.
 - Change: what she is doing, the view and the light behind her, the mood the hour
   carries, and where the keepsakes stand.
 - Write it in English. The only Chinese in the whole picture is the line on the paper.
+- Keep the variable prose lean: one sentence each for the hour and window, one short
+  action paragraph, one sentence for the cats, and one sentence for light and mood.
+  Aim below 3,600 characters before the check so keepsakes and reminders still fit.
 
 ```sh
 node bin/zoe.mjs prompt --write /tmp/zoe-prompt.txt            # no note this hour
