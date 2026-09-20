@@ -152,6 +152,7 @@ async function cmdShow(cfg) {
   const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
   const given = argv.image || argv._[1];
   const image = path.resolve(given);
+  const meta = drawMeta(image);
   const unique = putOnDesktop(cfg, image);
   store.remember(state, {
     at: now,
@@ -160,9 +161,11 @@ async function cmdShow(cfg) {
     scene: argv.scene || null,
     interaction: argv.pose || null,
     note: argv.note || null,
-    model: argv.model || null
+    model: argv.model || meta.model || null,
+    fresh: argv.fresh === true || meta.fresh === true
   }, { now, reuseHours: cfg.reuse_hours });
   store.save(STATE_PATH, state);
+  if (meta.file && fs.existsSync(meta.file)) fs.unlinkSync(meta.file);
   roomMod.save(ROOM_PATH, roomMod.touch(roomMod.load(ROOM_PATH), now));
   const gone = wallpaper.prune(cfg.out_dir, cfg.keep_wallpapers);
   log('desktop set to ' + unique + (gone.length ? ', pruned ' + gone.length + ' old file(s)' : ''));
@@ -259,11 +262,15 @@ function noteLine(preset, id) {
 // the prompt and the desktop.
 async function cmdDraw(cfg) {
   const prompt = (argv.prompt ? readInput(argv.prompt) : fs.readFileSync(PROMPT_PATH, 'utf8')).trim();
-  const ref = refFor(argv.ref);
+  const now = Date.now();
+  const state = store.load(STATE_PATH);
+  const fresh = argv.ref === 'none' || (!argv.ref && store.freshDue(state.history, now, cfg.fresh_hours));
+  const ref = fresh ? null : refFor(argv.ref);
   const out = argv.out || path.join(os.tmpdir(), 'zoe-' + Date.now() + '.jpg');
   const drawn = await proxy.draw(cfg, { prompt, ref });
   fs.writeFileSync(out, drawn.buffer);
-  log('drew with ' + drawn.model + (drawn.ref ? ' from ' + drawn.ref : ' from the prompt alone') + ' -> ' + out);
+  fs.writeFileSync(out + '.json', JSON.stringify({ at: now, fresh, model: drawn.model }) + String.fromCharCode(10));
+  log('drew with ' + drawn.model + (drawn.ref ? ' from ' + drawn.ref : ' fresh from the prompt alone') + ' -> ' + out);
   console.log(out);
 }
 
@@ -289,6 +296,17 @@ function refFor(want) {
   if (want === 'none') return null;
   if (want && want !== 'last') return want;
   return lastPicture();
+}
+
+// draw records how it made the picture; show carries that fact into history and then
+// discards the sidecar, so the next three-hour decision comes from state, not memory.
+function drawMeta(image) {
+  const file = image + '.json';
+  try {
+    return { ...JSON.parse(fs.readFileSync(file, 'utf8')), file };
+  } catch {
+    return { file };
+  }
 }
 
 // The picture the last hour left on the desktop. The next hour is drawn from it.
