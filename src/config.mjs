@@ -14,6 +14,7 @@ const DEFAULTS = {
   preset: 'hojo',
   hours: 1,
   reuse_hours: 6,
+  fresh_hours: 3,
   out_dir: path.join(HOME, 'Pictures', 'zoe'),
   size: '1792x1024',
   keep_wallpapers: 40,

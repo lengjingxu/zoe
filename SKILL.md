@@ -163,9 +163,10 @@ came back.
 
 It reads the prompt out of `~/.zoe/prompt.txt` and draws from the picture the last hour left on the
 desktop. That picture is the reference, so the room, the window view, the palette and the keepsakes
-remain strictly consistent. But inside that stable room, her posture and action must distinctly
-change according to the prompt so she does not remain frozen in the same standing stance hour
-after hour.
+remain strictly consistent for the next two hours. Every third generation, draw starts from the
+prompt alone to rebuild the room before image-to-image can compound artifacts. Inside that stable
+room, her posture and action must still distinctly change according to the prompt so she does not
+remain frozen in the same stance hour after hour.
 
 ```sh
 node bin/zoe.mjs draw --ref none      # the first hour ever: nothing to come from

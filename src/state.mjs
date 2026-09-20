@@ -23,6 +23,13 @@ export function prune(state, now, reuseHours, keepHistory = 200) {
   return state;
 }
 
+// A prompt-only generation resets the compounding cost of image-to-image. Keep this
+// decision in state so an hourly run can tell whether the room is due for a reset.
+export function freshDue(history, now, hours) {
+  const last = [...(history || [])].reverse().find((entry) => entry.fresh === true);
+  return !last || now - last.at >= hours * 3600e3;
+}
+
 // One line per picture: enough for the next hour to know what was drawn, and no more.
 export function remember(state, entry, { now, reuseHours }) {
   state.history.push(entry);
