@@ -21,6 +21,10 @@ export function drawCandidates(cfg) {
   return all.length ? all : [drawModel(cfg)];
 }
 
+function usesChatImage(cfg, id) {
+  return (cfg.models.chat_image || []).includes(id);
+}
+
 export function filmModel(cfg) {
   const priority = cfg.models.video_priority;
   if (!priority?.length) throw new Error('no models.video_priority in the config, nothing to film with');
@@ -75,6 +79,9 @@ export async function draw(cfg, { prompt, ref, size }) {
   for (const model of candidates) {
     try {
       const { base, key } = endpoint(cfg, model.id);
+      if (usesChatImage(cfg, model.id)) {
+        return await chatDraw(cfg, { model: model.id, prompt, ref, shape });
+      }
       if (!ref) {
         const out = await send(base + '/images/generations', key, { model: model.id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
         return { buffer: await bytes(out, base, key), model: model.id };
@@ -100,6 +107,28 @@ export async function draw(cfg, { prompt, ref, size }) {
   }
 
   throw new Error('all candidate models failed to draw:' + String.fromCharCode(10) + '  ' + errors.join(String.fromCharCode(10) + '  '));
+}
+
+// Some image models are served through chat completions and return their picture in
+// the message. The shape goes into the text because that API has no size field.
+async function chatDraw(cfg, { model, prompt, ref, shape }) {
+  const { base, key } = endpoint(cfg, model);
+  const content = [{ type: 'text', text: prompt + String.fromCharCode(10) + 'Output a ' + shape + ' image.' }];
+  if (ref) {
+    const frame = frameBytes(ref);
+    content.push({ type: 'image_url', image_url: { url: 'data:' + frame.type + ';base64,' + frame.bytes.toString('base64') } });
+  }
+  const out = await send(base + '/chat/completions', key, {
+    model,
+    messages: [{ role: 'user', content }]
+  });
+  const hit = out.choices?.[0]?.message?.images?.find((image) => image.image_url?.url);
+  if (!hit) throw new Error('the chat image model returned no image: ' + JSON.stringify(out).slice(0, 240));
+  const url = hit.image_url.url;
+  const buffer = url.startsWith('data:')
+    ? Buffer.from(url.slice(url.indexOf(',') + 1), 'base64')
+    : await download(url);
+  return { buffer, model, ref };
 }
 
 // Image to video, then the loop text decides what may move. The first frame has to be a
