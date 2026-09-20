@@ -71,7 +71,7 @@ node bin/zoe.mjs prompt > /tmp/zoe-prompt.txt
 That file is the text that drew the picture already on the desktop. Rewrite it for
 this hour; do not start from a blank page and do not throw away what works.
 
-- Keep, word for word: the style paragraph, the `Subject:` line, the layout paragraph
+- Keep, word for word: the style paragraph, the `Subject:` line, the resident-cats paragraph, the layout paragraph
   (or `note_layout` when she is holding paper), every word in `negative`, and the thing
   each keepsake is.
 - Change: what she is doing, the view and the light behind her, the mood the hour
@@ -131,6 +131,10 @@ After eight in the evening, work the `evening` line of the preset in as well: th
 the picture knows it.
 
 The keepsakes carry the memory. The desk carries this hour.
+
+The cats are residents, not props. The `cats` paragraph fixes who they are; the hour
+decides where they are and what they are doing. They may cross the room like she can,
+while the desk and her working corner stay anchored in the bottom-right of the frame.
 
 ### The window
 
@@ -241,4 +245,3 @@ particular, and add no keepsake.
 
 One line back to the user: what the hour was about, the file that landed, and whether it
 moves.
-

@@ -5,6 +5,7 @@ export function rules({ preset, room, note }) {
   return {
     style: preset.style,
     subject: 'Subject: ' + preset.character,
+    cats: preset.cats || null,
     layout: note ? preset.note_layout : preset.layout,
     negative: note ? preset.negative.filter((word) => word !== 'text') : preset.negative,
     things: (room?.symbols || []).map((s) => s.thing),
@@ -18,6 +19,7 @@ export function check({ text, preset, room, note }) {
 
   if (!text.includes(r.style)) missing.push('the style paragraph');
   if (!text.includes(r.subject)) missing.push('the subject line');
+  if (r.cats && !text.includes(r.cats)) missing.push('the resident cats');
   if (!text.includes(r.layout)) missing.push(note ? 'the layout for a note picture' : 'the layout paragraph');
   for (const word of r.negative) if (!text.includes(word)) missing.push('the ban on ' + word);
   for (const thing of r.things) if (!text.includes(thing)) missing.push('the keepsake: ' + thing);
