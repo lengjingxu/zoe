@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { check, rules } from '../src/check.mjs';
 
 const preset = {
@@ -51,4 +52,16 @@ test('the ban on text steps aside for the one picture that is text', () => {
 
 test('an hour cannot smuggle in a novel', () => {
   assert.throws(() => check({ text: prompt() + 'x'.repeat(4000), preset, room }), /4000/);
+});
+
+test('the shipped preset leaves room for the hour and keepsakes', () => {
+  const preset = JSON.parse(readFileSync(new URL('../presets/hojo.json', import.meta.url), 'utf8'));
+  const fixed = [
+    preset.style,
+    'Subject: ' + preset.character,
+    preset.cats,
+    preset.note_layout,
+    'Avoid: ' + preset.negative.filter((word) => word !== 'text').join(', ') + '.'
+  ].join(String.fromCharCode(10) + String.fromCharCode(10));
+  assert.ok(fixed.length < 1800, 'fixed preset text is ' + fixed.length + ' characters');
 });
