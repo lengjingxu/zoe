@@ -2,17 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const SET_ALL = [
-  'on run argv',
-  '  set target to POSIX file (item 1 of argv)',
-  '  tell application "System Events"',
-  '    repeat with i from 1 to (count of desktops)',
-  '      set picture of desktop i to target',
-  '    end repeat',
-  '  end tell',
-  'end run'
-].join('\n');
-
 const SET_ONE = [
   'on run argv',
   '  set target to POSIX file (item 1 of argv)',
@@ -22,33 +11,51 @@ const SET_ONE = [
 
 const READ_ALL = 'tell application "System Events" to get picture of every desktop';
 
-// macOS caches a wallpaper by path, so a fresh path is the only reliable way to
-// make the change land on every desktop right away.
+// macOS caches a wallpaper by path, so every display gets its own fresh file. One
+// shared timestamped path is not enough: one display can keep the old picture.
 export function show(image, outDir, refresh, tag) {
   const opts = refresh || {};
   fs.mkdirSync(outDir, { recursive: true });
-  const unique = path.join(outDir, 'wallpaper_' + (tag || Date.now()) + '.jpg');
-  if (path.resolve(image) !== path.resolve(unique)) fs.copyFileSync(image, unique);
-
-  execFileSync('osascript', ['-e', SET_ALL, unique], { encoding: 'utf8' });
-  for (const i of missing(unique)) {
-    execFileSync('osascript', ['-e', SET_ONE, unique, String(i)], { encoding: 'utf8' });
+  const stamp = tag || Date.now();
+  const displays = desktopCount();
+  const targets = Array.from({ length: displays }, (_, i) =>
+    path.join(outDir, 'wallpaper_' + stamp + '_d' + (i + 1) + '.jpg')
+  );
+  for (const target of targets) {
+    if (path.resolve(image) !== path.resolve(target)) fs.copyFileSync(image, target);
   }
-  if (opts.dock_restart !== false) execFileSync('killall', ['Dock'], { encoding: 'utf8' });
 
-  const missed = missing(unique);
-  if (missed.length) throw new Error('desktop ' + missed.join(', ') + ' would not take ' + unique);
-  return unique;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    for (const i of missing(targets)) {
+      execFileSync('osascript', ['-e', SET_ONE, targets[i - 1], String(i)], { encoding: 'utf8' });
+    }
+    if (missing(targets).length === 0) {
+      if (opts.dock_restart !== false) execFileSync('killall', ['Dock'], { encoding: 'utf8' });
+      if (missing(targets).length === 0) return targets[0];
+    }
+  }
+  const missed = missing(targets);
+  if (missed.length) throw new Error('desktop ' + missed.join(', ') + ' would not take its wallpaper');
+  return targets[0];
 }
 
 // macOS drops a wallpaper change now and then, so ask the desktops what they are
 // showing instead of trusting that the set worked.
-function missing(unique) {
+function desktopCount() {
+  const out = execFileSync('osascript', ['-e', 'tell application "System Events" to count desktops'], {
+    encoding: 'utf8'
+  });
+  const count = Number(out.trim());
+  if (!Number.isInteger(count) || count < 1) throw new Error('macOS reports ' + count + ' desktops');
+  return count;
+}
+
+function missing(targets) {
   const out = execFileSync('osascript', ['-e', READ_ALL], { encoding: 'utf8' });
   return out
     .split(',')
     .map((p) => p.trim())
-    .map((p, i) => (p === unique ? 0 : i + 1))
+    .map((p, i) => (p === targets[i] ? 0 : i + 1))
     .filter(Boolean);
 }
 
@@ -61,7 +68,7 @@ export function current() {
 
 export function prune(outDir, keep) {
   if (!fs.existsSync(outDir) || !keep) return [];
-  const doomed = [...oldest(outDir, /^wallpaper_\d+\.jpg$/, keep), ...oldest(outDir, /^loop_\d+\.mp4$/, 6)];
+  const doomed = [...oldest(outDir, /^wallpaper_\d+(?:_d\d+)?\.jpg$/, keep), ...oldest(outDir, /^loop_\d+\.mp4$/, 6)];
   for (const f of doomed) fs.unlinkSync(f);
   return doomed;
 }
