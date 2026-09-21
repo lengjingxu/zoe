@@ -7,7 +7,7 @@ import { resolve, resolveAll, configured } from './models.mjs';
 const TIMEOUT = 300e3;
 const POLL_EVERY = 10e3;
 const POLL_LIMIT = 60;
-const FRAME_LIMIT = 1e6;
+const FRAME_LIMIT = 750e3;
 const FRAME_WIDTH = 1280;
 
 // The models zoe draws with come from a proxy named in the config, an OpenAI-compatible
@@ -202,18 +202,25 @@ export function makeSeamlessLoop(buffer) {
   return buffer;
 }
 
-// The gateway refuses a request body past a few megabytes, and a still from an image
-// model can be one. Past the limit the picture goes up shrunk to the width the clip
-// comes back in; under it the bytes go up as they are.
+// The gateway refuses a request body near a megabyte, and a still from an image model
+// lands just under one. What it weighs is the body, so the limit is measured after the
+// encoding and leaves the prompt room in the same body. Past it the picture goes up
+// shrunk to the width the clip comes back in; under it the bytes go up as they are.
 export function frameBytes(file) {
   const raw = fs.readFileSync(file);
   const png = file.toLowerCase().endsWith('.png');
-  if (raw.length <= FRAME_LIMIT) return { bytes: raw, type: png ? 'image/png' : 'image/jpeg' };
+  if (encodedLength(raw.length) <= FRAME_LIMIT) return { bytes: raw, type: png ? 'image/png' : 'image/jpeg' };
   const small = path.join(os.tmpdir(), 'zoe-frame-' + Date.now() + '.jpg');
   execFileSync('sips', ['-Z', String(FRAME_WIDTH), '-s', 'format', 'jpeg', '-s', 'formatOptions', '72', file, '--out', small], { stdio: 'ignore' });
   const shrunk = fs.readFileSync(small);
   fs.unlinkSync(small);
   return { bytes: shrunk, type: 'image/jpeg' };
+}
+
+// Base64 turns three bytes into four, which is how a still of 819 KB becomes a body of
+// 1.1 MB and gets refused before the gateway ever reads the key.
+export function encodedLength(bytes) {
+  return Math.ceil(bytes / 3) * 4;
 }
 
 async function bytes(out, base, key) {
