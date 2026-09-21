@@ -22,7 +22,7 @@ const DEFAULTS = {
   room_keep_days: 30,
   room_add_per_run: 1,
   models: {
-    priority: ['grok-imagine-image-2.0', 'gpt-image-2', 'gemini-3.1-flash-image'],
+    priority: ['grok-imagine-image-2.0', 'gpt-image-2', 'gemini-3.1-flash-image', 'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality'],
     chat_image: ['gemini-3.1-flash-image'],
     video_priority: ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-preview']
   },
