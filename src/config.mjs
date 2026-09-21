@@ -22,11 +22,27 @@ const DEFAULTS = {
   room_keep_days: 30,
   room_add_per_run: 1,
   models: {
-    priority: ['grok-imagine-image-2.0', 'gpt-image-2', 'gemini-3.1-flash-image', 'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality'],
+    priority: ['grok-imagine-image-2.0', 'gpt-image-2', 'gpt-image-2.5', 'gemini-3.1-flash-image', 'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality'],
     chat_image: ['gemini-3.1-flash-image'],
     video_priority: ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-preview']
   },
-  providers: [],
+  providers: [
+    {
+      id: 'proxy',
+      api_key_env: 'GPT_IMAGE_API_KEY',
+      base_url_env: 'ZOE_BASE_URL',
+      models: [
+        'grok-imagine-image-2.0', 'gpt-image-2', 'gemini-3.1-flash-image',
+        'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality'
+      ]
+    },
+    {
+      id: 'tiny_yun',
+      api_key_env: 'tiny_yun',
+      base_url: 'https://ai.tiny.yun/v1',
+      models: ['gpt-image-2.5']
+    }
+  ],
   sources: { cindy: true, codex: true, claudecode: true, memory: true },
   ignore: ['壁纸', 'wallpaper', 'zoe ', '[UI_ACTION_TRIGGER]', '[Schedule]', 'AGENTS.md instructions'],
   wishes: [],
