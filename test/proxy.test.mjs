@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { frameBytes, endpoint, draw } from '../src/proxy.mjs';
+import { frameBytes, encodedLength, endpoint, draw } from '../src/proxy.mjs';
 
 const TINY_JPEG =
   '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAx' +
@@ -19,6 +19,11 @@ test('a still under the limit goes up as it is', () => {
   const got = frameBytes(tiny);
   assert.equal(got.type, 'image/jpeg');
   assert.ok(got.bytes.equals(fs.readFileSync(tiny)), 'the bytes are the file, not a re-encode');
+});
+
+test('what the gateway weighs is the encoded still, not the file', () => {
+  assert.ok(encodedLength(819388) > 750e3, 'the still the gateway refused at 15:00 is past the limit');
+  assert.ok(encodedLength(500e3) <= 750e3, 'a still well under a megabyte still goes up as it is');
 });
 
 test('a still past the limit is shrunk before it is encoded', () => {
