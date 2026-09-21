@@ -8,7 +8,9 @@ import { load, save, prune, remember, rotate } from '../src/state.mjs';
 
 const config = { models: { priority: ['xai/grok-imagine-image-2.0', 'openai/gpt-image-2'] }, providers: [] };
 const fallbackConfig = {
-  models: { priority: ['gpt-image-2', 'grok-imagine-image-2.0', 'gemini-3.1-flash-image'] },
+  models: {
+    priority: ['gpt-image-2', 'grok-imagine-image-2.0', 'gemini-3.1-flash-image', 'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality']
+  },
   providers: []
 };
 const client = (ids) => ids.map((id) => ({ id, provider_id: id.split('/')[0] }));
@@ -36,9 +38,15 @@ test('a wildcard follows the newest variant of a family', () => {
   assert.equal(resolve(wild, client(['xai/grok-imagine-image', 'xai/grok-imagine-image-2.0'])).id, 'xai/grok-imagine-image-2.0');
 });
 
-test('gemini is the explicit last image candidate', () => {
-  const all = resolveAll(fallbackConfig, client(['gemini-3.1-flash-image', 'grok-imagine-image-2.0', 'gpt-image-2']));
-  assert.deepEqual(all.map((m) => m.id), ['gpt-image-2', 'grok-imagine-image-2.0', 'gemini-3.1-flash-image']);
+test('older image models are the explicit last candidates', () => {
+  const all = resolveAll(fallbackConfig, client([
+    'grok-imagine-image-quality', 'grok-imagine-image', 'gpt-image-1.5',
+    'gemini-3.1-flash-image', 'grok-imagine-image-2.0', 'gpt-image-2'
+  ]));
+  assert.deepEqual(all.map((m) => m.id), [
+    'gpt-image-2', 'grok-imagine-image-2.0', 'gemini-3.1-flash-image',
+    'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality'
+  ]);
   const pick = resolve(fallbackConfig, client(['gemini-3.1-flash-image']));
   assert.equal(pick.id, 'gemini-3.1-flash-image');
   assert.deepEqual(pick.skipped, ['gpt-image-2', 'grok-imagine-image-2.0']);
