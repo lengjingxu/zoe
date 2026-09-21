@@ -13,6 +13,13 @@ const fallbackConfig = {
   },
   providers: []
 };
+const twoGatewayConfig = {
+  models: { priority: ['gpt-image-2', 'gpt-image-2.5'] },
+  providers: [
+    { id: 'proxy', models: ['gpt-image-2'] },
+    { id: 'tiny_yun', models: ['gpt-image-2.5'] }
+  ]
+};
 const client = (ids) => ids.map((id) => ({ id, provider_id: id.split('/')[0] }));
 
 test('resolveAll returns candidate models in priority order', () => {
@@ -54,6 +61,22 @@ test('older image models are the explicit last candidates', () => {
 
 test('nothing available is an error, not a quiet downgrade', () => {
   assert.throws(() => resolve(config, client(['some/other-model'])), /none of the priority models/);
+});
+
+test('tiny_yun is an explicit second-gateway fallback', () => {
+  const gatewayClient = (items) => items.map(([id, providerId]) => ({ id, provider_id: providerId }));
+  const all = resolveAll(twoGatewayConfig, gatewayClient([
+    ['gpt-image-2.5', 'tiny_yun'],
+    ['gpt-image-2', 'proxy']
+  ]));
+  assert.deepEqual(all.map((m) => [m.id, m.provider_id]), [
+    ['gpt-image-2', 'proxy'],
+    ['gpt-image-2.5', 'tiny_yun']
+  ]);
+  const pick = resolve(twoGatewayConfig, gatewayClient([['gpt-image-2.5', 'tiny_yun']]));
+  assert.equal(pick.id, 'gpt-image-2.5');
+  assert.equal(pick.provider_id, 'tiny_yun');
+  assert.deepEqual(pick.skipped, ['gpt-image-2']);
 });
 
 test('the reuse pool drops what expired or went missing', () => {

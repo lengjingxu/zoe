@@ -193,27 +193,29 @@ picture that does not name the line it is holding does not pass the check.
 
 ## Models
 
-Every picture comes from one gateway, named in `~/.zoe/config.json`. `zoe models` walks
+Every picture comes from one of the gateways named in `~/.zoe/config.json`. `zoe models` walks
 the priority list and prints what it will use, and what it skipped to get there:
 
 ```
-priority  : grok-imagine-image-2.0  ->  gpt-image-2  ->  gemini-3.1-flash-image
+priority  : grok-imagine-image-2.0  ->  gpt-image-2  ->  gpt-image-2.5  ->  gemini-3.1-flash-image
 video     : grok-imagine-video-1.5  ->  grok-imagine-video-1.5-preview
-providers : proxy (6 models)
-available : grok-imagine-image-2.0, gpt-image-2, gemini-3.1-flash-image, ...
+providers : proxy (6 models), tiny_yun (1 model)
+available : grok-imagine-image-2.0, gpt-image-2, gpt-image-2.5, gemini-3.1-flash-image, ...
 picked    : grok-imagine-image-2.0
 ```
 
 ```json
 { "models": {
-    "priority": ["grok-imagine-image-2.0", "gpt-image-2", "gemini-3.1-flash-image"],
+    "priority": ["grok-imagine-image-2.0", "gpt-image-2", "gpt-image-2.5", "gemini-3.1-flash-image"],
     "video_priority": ["grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] },
   "providers": [
     { "id": "proxy",
       "base_url_env": "ZOE_BASE_URL",
       "api_key_env": "GPT_IMAGE_API_KEY",
       "models": ["grok-imagine-image-2.0", "gpt-image-2", "gemini-3.1-flash-image",
-                 "grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] } ] }
+                 "grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] },
+    { "id": "tiny_yun", "base_url": "https://ai.tiny.yun/v1",
+      "api_key_env": "tiny_yun", "models": ["gpt-image-2.5"] } ] }
 ```
 
 The gateway is OpenAI-shaped: `/images/generations`, `/images/edits`,
