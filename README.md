@@ -218,6 +218,14 @@ picked    : grok-imagine-image-2.0
       "api_key_env": "tiny_yun", "models": ["gpt-image-2.5"] } ] }
 ```
 
+The candidate set `zoe models` walks is `providers[*].models` widened by every model the
+gateway index knows about whose `provider_id` is one the config names. The index lives at
+`~/.zoe/models.json` and is refreshed by `zoe init --sync` (or just `zoe init`); without it,
+only the hand-written `providers[*].models` ids are visible to the resolver. This is how zoe
+stays out of the way of new model versions: a fresh priority list with a wildcard, the live
+list catches every numbered variant, and nothing has to be re-edited by hand when the gateway
+rolls forward.
+
 The gateway is OpenAI-shaped: `/images/generations`, `/images/edits`,
 `/videos/generations` and `/videos/{request_id}`. Both the address and the key are read
 from the environment variables the provider names, never from the file; an empty one

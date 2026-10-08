@@ -41,6 +41,15 @@ const DEFAULTS = {
       api_key_env: 'tiny_yun',
       base_url: 'https://ai.tiny.yun/v1',
       models: ['gpt-image-2.5']
+    },
+    {
+      // The codex/openai side of the same gateway. Carries no hand-written model
+      // list: the live index fills it. As long as the gateway says an openai model
+      // exists, the resolver can pick it without touching this file.
+      id: 'codex',
+      api_key_env: 'XDT_CODEX_API_KEY',
+      base_url_env: 'ZOE_BASE_URL',
+      models: []
     }
   ],
   sources: { cindy: true, codex: true, claudecode: true, memory: true },
@@ -55,6 +64,7 @@ export function loadConfig(overrides = {}) {
   cfg.sources = { ...DEFAULTS.sources, ...(file.sources || {}), ...(overrides.sources || {}) };
   cfg.models = { ...DEFAULTS.models, ...(file.models || {}), ...(overrides.models || {}) };
   cfg.refresh = { ...DEFAULTS.refresh, ...(file.refresh || {}), ...(overrides.refresh || {}) };
+  cfg.providers = (file.providers && file.providers.length) ? file.providers : DEFAULTS.providers;
   return cfg;
 }
 

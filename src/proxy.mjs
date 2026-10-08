@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { resolve, resolveAll, configured } from './models.mjs';
+import { resolve, configured } from './models.mjs';
+import { read as readIndex } from './models_index.mjs';
 
 const TIMEOUT = 300e3;
 const POLL_EVERY = 10e3;
@@ -12,13 +13,10 @@ const FRAME_WIDTH = 1280;
 
 // The models zoe draws with come from a proxy named in the config, an OpenAI-compatible
 // gateway with its own budget. This file is the only place zoe talks to a model.
+// One model, the first name on the priority list. If it fails, the run fails and says
+// so; nothing here quietly draws with a second model instead.
 export function drawModel(cfg) {
-  return resolve(cfg, configured(cfg));
-}
-
-export function drawCandidates(cfg) {
-  const all = resolveAll(cfg, configured(cfg));
-  return all.length ? all : [drawModel(cfg)];
+  return resolve(cfg, undefined, { index: readIndex() });
 }
 
 function usesChatImage(cfg, id) {
@@ -28,20 +26,34 @@ function usesChatImage(cfg, id) {
 export function filmModel(cfg) {
   const priority = cfg.models.video_priority;
   if (!priority?.length) throw new Error('no models.video_priority in the config, nothing to film with');
-  return resolve({ ...cfg, models: { priority } }, configured(cfg));
+  return resolve({ ...cfg, models: { priority } }, undefined, { index: readIndex() });
 }
 
 // Where the gateway lives and the key that opens it both come from the environment
 // variables this provider names, so the config file carries neither.
-export function endpoint(cfg, id) {
-  const provider = (cfg.providers || []).find((p) => (p.models || []).includes(id));
-  if (!provider) throw new Error('no provider in the config lists ' + id);
+// Accepts either a model id string or { id, provider_id } so the resolver can pin
+// a provider without first registering the id in providers[*].models.
+export function endpoint(cfg, idOrSpec) {
+  let id;
+  let forcedProvider;
+  if (typeof idOrSpec === 'string') id = idOrSpec;
+  else if (idOrSpec && typeof idOrSpec === 'object') {
+    id = idOrSpec.id;
+    forcedProvider = idOrSpec.provider_id;
+  } else {
+    throw new Error('endpoint() wants an id or { id, provider_id }');
+  }
+  const providers = cfg.providers || [];
+  const provider = forcedProvider
+    ? providers.find((p) => p.id === forcedProvider)
+    : providers.find((p) => (p.models || []).includes(id));
+  if (!provider) throw new Error('no provider in the config lists ' + id + (forcedProvider ? ' (forced provider ' + forcedProvider + ')' : ''));
   const address = provider.base_url_env || '';
   const base = address ? process.env[address] : provider.base_url;
   if (!base) throw new Error(provider.id + ' has no address: set ' + (address || 'base_url') + (address ? ', that variable is empty' : ' in the config'));
   const from = provider.api_key_env || '';
   const key = process.env[from];
-  if (!key) throw new Error(provider.id + ' reads its key from ' + (from || '(no api_key_env)') + ', and that variable is empty');
+  if (!key) throw new Error(provider.id + ' reads its key from ' + (from || '(no api_key_env)') + ', that variable is empty');
   return { base: String(base).replace(/\/+$/, ''), key, provider: provider.id };
 }
 
@@ -72,41 +84,32 @@ async function get(url, key) {
 // from the picture already there, which keeps the room and the hand the way they were.
 export async function draw(cfg, { prompt, ref, size }) {
   if (!prompt?.trim()) throw new Error('nothing to draw: the prompt is empty');
-  const candidates = drawCandidates(cfg);
+  const { id, provider_id } = drawModel(cfg);
   const shape = size || cfg.size || '1792x1024';
-  const errors = [];
+  const { base, key } = endpoint(cfg, { id, provider_id });
 
-  for (const model of candidates) {
-    try {
-      const { base, key } = endpoint(cfg, model.id);
-      if (usesChatImage(cfg, model.id)) {
-        return await chatDraw(cfg, { model: model.id, prompt, ref, shape });
-      }
-      if (!ref) {
-        const out = await send(base + '/images/generations', key, { model: model.id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
-        return { buffer: await bytes(out, base, key), model: model.id };
-      }
-      if (!fs.existsSync(ref)) throw new Error('no picture at ' + ref + ' to draw from');
-
-      try {
-        const form = new FormData();
-        form.set('model', model.id);
-        form.set('prompt', prompt);
-        form.set('size', shape);
-        form.set('n', '1');
-        form.set('image', new Blob([fs.readFileSync(ref)], { type: 'image/jpeg' }), path.basename(ref));
-        const out = await send(base + '/images/edits', key, null, form);
-        return { buffer: await bytes(out, base, key), model: model.id, ref };
-      } catch {
-        const out = await send(base + '/images/generations', key, { model: model.id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
-        return { buffer: await bytes(out, base, key), model: model.id };
-      }
-    } catch (err) {
-      errors.push(model.id + ': ' + (err.message || String(err)));
-    }
+  if (usesChatImage(cfg, id)) {
+    return await chatDraw(cfg, { model: id, prompt, ref, shape });
   }
+  if (!ref) {
+    const out = await send(base + '/images/generations', key, { model: id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
+    return { buffer: await bytes(out, base, key), model: id };
+  }
+  if (!fs.existsSync(ref)) throw new Error('no picture at ' + ref + ' to draw from');
 
-  throw new Error('all candidate models failed to draw:' + String.fromCharCode(10) + '  ' + errors.join(String.fromCharCode(10) + '  '));
+  try {
+    const form = new FormData();
+    form.set('model', id);
+    form.set('prompt', prompt);
+    form.set('size', shape);
+    form.set('n', '1');
+    form.set('image', new Blob([fs.readFileSync(ref)], { type: 'image/jpeg' }), path.basename(ref));
+    const out = await send(base + '/images/edits', key, null, form);
+    return { buffer: await bytes(out, base, key), model: id, ref };
+  } catch {
+    const out = await send(base + '/images/generations', key, { model: id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
+    return { buffer: await bytes(out, base, key), model: id };
+  }
 }
 
 // Some image models are served through chat completions and return their picture in
@@ -138,7 +141,7 @@ export async function film(cfg, { prompt, firstFrame, seconds, resolution }) {
   if (!prompt?.trim()) throw new Error('nothing to film: the motion text is empty');
   if (!firstFrame || !fs.existsSync(firstFrame)) throw new Error('no first frame at ' + firstFrame);
   const model = filmModel(cfg);
-  const { base, key } = endpoint(cfg, model.id);
+  const { base, key } = endpoint(cfg, { id: model.id, provider_id: model.provider_id });
 
   const frame = frameBytes(firstFrame);
   const image = { url: 'data:' + frame.type + ';base64,' + frame.bytes.toString('base64') };

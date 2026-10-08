@@ -50,9 +50,11 @@ only file here that speaks to a model.
 
 ## Drawing
 
-How to draw is not up to the agent either: the model comes from the priority list in the
-config, the picture to come from is the last hour's, and the text is `~/.zoe/prompt.txt`.
-`zoe draw` joins the three and writes one file.
+How to draw is not up to the agent either: the model comes from `zoe models`, which
+walks the priority list widened by the live gateway list (cached at `~/.zoe/models.json`
+from `GET {base}/models`); the picture to come from is the last hour's, and the text is
+`~/.zoe/prompt.txt`. `zoe draw` joins the three and writes one file. Run `zoe init --sync`
+once to refresh the cache; without it zoe can only see the ids in `providers[*].models`.
 
 ```
 POST {base}/images/generations   the prompt alone, on the first hour

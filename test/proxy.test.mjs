@@ -54,6 +54,23 @@ test('an address that resolves to nothing stops the run and names the variable',
   assert.throws(() => endpoint(provider({}), 'm'), /no address/);
 });
 
+test('endpoint({ id, provider_id }) routes to the named provider without an id registry', () => {
+  const cfg = { providers: [
+    { id: 'codex', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://codex.example/v1', models: [] },
+    { id: 'proxy', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://proxy.example/v1', models: ['other-model'] }
+  ] };
+  const e1 = endpoint(cfg, { id: 'gpt-image-2.5-flare', provider_id: 'codex' });
+  assert.equal(e1.base, 'http://codex.example/v1');
+  assert.equal(e1.provider, 'codex');
+  // Without the explicit provider, the same id (not in any models list) would fail.
+  assert.throws(() => endpoint(cfg, 'gpt-image-2.5-flare'), /no provider in the config lists gpt-image-2.5-flare/);
+});
+
+test('endpoint({ id, provider_id }) names the unknown provider in the error', () => {
+  const cfg = { providers: [{ id: 'codex', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://codex.example/v1', models: [] }] };
+  assert.throws(() => endpoint(cfg, { id: 'qwen-image-3.0', provider_id: 'aliyun' }), /forced provider aliyun/);
+});
+
 test('makeSeamlessLoop safely returns original buffer when input cannot be processed', async () => {
   const { makeSeamlessLoop } = await import('../src/proxy.mjs');
   const dummy = Buffer.from('not-a-video-stream');
