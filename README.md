@@ -206,17 +206,21 @@ picked    : grok-imagine-image-2.0
 
 ```json
 { "models": {
-    "priority": ["grok-imagine-image-2.0", "gpt-image-2", "gpt-image-2.5", "gemini-3.1-flash-image"],
-    "video_priority": ["grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] },
+    "priority": ["gpt-image-2.5*", "gpt-image-2", "gpt-image-1.5"],
+    "video_priority": [],
+    "chat_image": [] },
   "providers": [
-    { "id": "proxy",
+    { "id": "codex",
       "base_url_env": "ZOE_BASE_URL",
-      "api_key_env": "GPT_IMAGE_API_KEY",
-      "models": ["grok-imagine-image-2.0", "gpt-image-2", "gemini-3.1-flash-image",
-                 "grok-imagine-video-1.5", "grok-imagine-video-1.5-preview"] },
-    { "id": "tiny_yun", "base_url": "https://ai.tiny.yun/v1",
-      "api_key_env": "tiny_yun", "models": ["gpt-image-2.5"] } ] }
+      "api_key_env": "XDT_CODEX_API_KEY",
+      "models": [] } ] }
 ```
+
+`zoe init --sync` writes the live gateway list to `~/.zoe/models.json` and folds the
+`openai` vendor onto the codex slot. Anything not under the codex provider is filtered
+out of the candidate set, so a clone with the same `~/.zoe/config.json` and the two env
+vars resolves to the same codex models regardless of which other providers the gateway
+exposes.
 
 The candidate set `zoe models` walks is `providers[*].models` widened by every model the
 gateway index knows about whose `provider_id` is one the config names. The index lives at

@@ -22,30 +22,20 @@ const DEFAULTS = {
   room_keep_days: 30,
   room_add_per_run: 1,
   models: {
-    priority: ['grok-imagine-image-2.0', 'gpt-image-2', 'gpt-image-2.5', 'gemini-3.1-flash-image', 'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality'],
-    chat_image: ['gemini-3.1-flash-image'],
-    video_priority: ['grok-imagine-video-1.5', 'grok-imagine-video-1.5-preview']
+    // Only codex/openai image models: 2.5 line first (covers 2.5 / 2.5-flare / 2.5-sunburst),
+    // then 2, then 1.5. A gpt-image-3 would fall through until the priority is updated.
+    // No grok / qwen / gemini / external gateway: a clone with only
+    // XDT_CODEX_API_KEY + ZOE_BASE_URL resolves cleanly.
+    priority: ['gpt-image-2.5*', 'gpt-image-2', 'gpt-image-1.5'],
+    chat_image: [],
+    // The codex side has no video, so film has no candidate: an empty list
+    // stops the run and names the gap rather than picking a different gateway.
+    video_priority: []
   },
   providers: [
     {
-      id: 'proxy',
-      api_key_env: 'GPT_IMAGE_API_KEY',
-      base_url_env: 'ZOE_BASE_URL',
-      models: [
-        'grok-imagine-image-2.0', 'gpt-image-2', 'gemini-3.1-flash-image',
-        'gpt-image-1.5', 'grok-imagine-image', 'grok-imagine-image-quality'
-      ]
-    },
-    {
-      id: 'tiny_yun',
-      api_key_env: 'tiny_yun',
-      base_url: 'https://ai.tiny.yun/v1',
-      models: ['gpt-image-2.5']
-    },
-    {
-      // The codex/openai side of the same gateway. Carries no hand-written model
-      // list: the live index fills it. As long as the gateway says an openai model
-      // exists, the resolver can pick it without touching this file.
+      // The single channel zoe speaks to. The live gateway index fills models.
+      // priority + providers together confine the resolver to this codex slot.
       id: 'codex',
       api_key_env: 'XDT_CODEX_API_KEY',
       base_url_env: 'ZOE_BASE_URL',

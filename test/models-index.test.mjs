@@ -78,3 +78,39 @@ test('models_index classifies and groups the live gateway list', async () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+
+test('a codex-only config keeps grok / qwen / gemini out of the candidate set', () => {
+  const codexOnly = {
+    models: { priority: ['gpt-image-2.5*', 'gpt-image-2', 'gpt-image-1.5'] },
+    providers: [{ id: 'codex', api_key_env: 'X', base_url: 'http://x', models: [] }]
+  };
+  const index = {
+    models: [
+      { id: 'gpt-image-2.5', provider_id: 'codex' },
+      { id: 'gpt-image-2', provider_id: 'codex' },
+      { id: 'grok-imagine-image', provider_id: 'xai' },
+      { id: 'qwen-image-3.0', provider_id: 'yun' },
+      { id: 'gemini-3.1-flash-image', provider_id: 'antigravity' },
+      { id: 'wan2.7-image-pro', provider_id: 'aliyun' }
+    ]
+  };
+  const pick = resolve(codexOnly, undefined, { index });
+  assert.equal(pick.id, 'gpt-image-2.5');
+  assert.equal(pick.provider_id, 'codex');
+  const ids = pick.available;
+  assert.ok(!ids.includes('grok-imagine-image'), 'grok is filtered out by the codex provider');
+  assert.ok(!ids.includes('qwen-image-3.0'), 'qwen is filtered out');
+  assert.ok(!ids.includes('gemini-3.1-flash-image'), 'gemini is filtered out');
+  assert.ok(!ids.includes('wan2.7-image-pro'), 'wan is filtered out');
+});
+
+test('configured keeps an openai-vendor model that survived the codex alias', () => {
+  const codexOnly = {
+    providers: [{ id: 'codex', api_key_env: 'X', base_url: 'http://x', models: [] }]
+  };
+  // Pretend refresh() already wrote a fixture where openai was renamed to codex.
+  const index = { models: [{ id: 'gpt-image-2.5-flare', provider_id: 'codex', vendor: 'openai' }] };
+  const ids = configured(codexOnly, index).map((m) => m.id);
+  assert.ok(ids.includes('gpt-image-2.5-flare'), 'the codex-renamed openai model is reachable');
+});

@@ -52,9 +52,13 @@ only file here that speaks to a model.
 
 How to draw is not up to the agent either: the model comes from `zoe models`, which
 walks the priority list widened by the live gateway list (cached at `~/.zoe/models.json`
-from `GET {base}/models`); the picture to come from is the last hour's, and the text is
-`~/.zoe/prompt.txt`. `zoe draw` joins the three and writes one file. Run `zoe init --sync`
-once to refresh the cache; without it zoe can only see the ids in `providers[*].models`.
+from `GET {base}/models`). The default config routes through a single `codex` provider;
+the gateway's `openai`-vendor models are folded onto the codex slot by `models_index.mjs`,
+and everything else is filtered out by the missing provider. The picture to come from is the
+last hour's, and the text is `~/.zoe/prompt.txt`. `zoe draw` joins the three and writes one
+file. Run `zoe init --sync` once to refresh the cache; without it zoe can only see the ids in
+`providers[*].models`. The codex side has no video model, so `models.video_priority` is
+empty by default and `zoe film` stops the run rather than picking a different gateway.
 
 ```
 POST {base}/images/generations   the prompt alone, on the first hour
