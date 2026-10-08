@@ -13,6 +13,7 @@ import { paper } from '../src/note.mjs';
 import * as movie from '../src/movie.mjs';
 import { animate } from '../src/motion.mjs';
 import * as proxy from '../src/proxy.mjs';
+import { read as readIndex, refresh as refreshIndex } from '../src/models_index.mjs';
 
 const argv = parseArgs(process.argv.slice(2));
 const log = (...parts) => console.log('[zoe]', ...parts);
@@ -28,7 +29,7 @@ async function main() {
   const cfg = loadConfig();
   switch (argv._[0]) {
     case 'init':
-      return log('config written to ' + writeDefaultConfig());
+      return cmdInit();
     case 'detect':
       return cmdDetect();
     case 'models':
@@ -59,6 +60,27 @@ async function main() {
       return cmdStatus(cfg);
     default:
       return usage();
+  }
+}
+
+async function cmdInit() {
+  const cfg = loadConfig();
+  log('config written to ' + writeDefaultConfig());
+  if (argv.sync) {
+    for (const p of cfg.providers || []) {
+      const address = p.base_url_env || '';
+      const base = address ? process.env[address] : p.base_url;
+      const key = p.api_key_env ? process.env[p.api_key_env] : null;
+      if (!base || !key) continue;
+      try {
+        const idx = await refreshIndex({ base, key });
+        log('index refreshed from ' + p.id + ': ' + idx.models.length + ' models (' + idx.image.length + ' image, ' + idx.video.length + ' video)');
+        return;
+      } catch (err) {
+        log('index refresh via ' + p.id + ' failed: ' + err.message);
+      }
+    }
+    log('no provider returned a live model list; index left untouched');
   }
 }
 
