@@ -66,12 +66,20 @@ export async function refresh({ base, key }) {
   let j;
   try { j = JSON.parse(text); } catch (e) { throw new Error(url + ' answered non-JSON: ' + text.slice(0, 200)); }
   const list = j.data || j || [];
-  const models = list.map((m) => ({
-    id: m.id,
-    provider_id: m.owned_by || m.provider_id || m.provider || null,
-    name: m.name || null,
-    mode: (m.architecture && (m.architecture.modality || (m.architecture.output_modalities || []).join(','))) || null
-  })).filter((m) => m.id);
+  // The gateway's owned_by tags models by who trained them (openai, xai, ...). zoe
+  // speaks through a single codex channel, so collapse the openai family onto the
+  // codex provider id. The original owned_by is preserved as 'vendor' for reporting.
+  const models = list.map((m) => {
+    const vendor = m.owned_by || m.provider_id || m.provider || null;
+    const provider_id = vendor === 'openai' ? 'codex' : vendor;
+    return {
+      id: m.id,
+      provider_id,
+      vendor,
+      name: m.name || null,
+      mode: (m.architecture && (m.architecture.modality || (m.architecture.output_modalities || []).join(','))) || null
+    };
+  }).filter((m) => m.id);
   const out = { at: Date.now(), models };
   fs.mkdirSync(path.dirname(indexPath()), { recursive: true });
   fs.writeFileSync(indexPath(), JSON.stringify(out, null, 2) + '\n');

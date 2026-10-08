@@ -197,7 +197,9 @@ few words for what she was doing: the next hour reads them back from `zoe status
 
 ## 6. Let it move
 
-A still that has just landed can become a loop:
+A still that has just landed can become a loop, **only if `models.video_priority` lists a model the gateway actually serves** under the codex provider. The codex side of the current gateway has no video endpoint, so `models.video_priority` is empty by default and `zoe film` stops the run with `no models.video_priority in the config: the codex side has no video model, film is not available`. Skip the whole step in that case; a still is the picture for the hour.
+
+When a video model is listed:
 
 ```sh
 node bin/zoe.mjs film                    # the still it just drew, moving

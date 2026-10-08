@@ -95,13 +95,21 @@ async function cmdDetect() {
 }
 
 async function cmdModels(cfg) {
-  console.log('priority  : ' + cfg.models.priority.join('  ->  '));
-  console.log('video     : ' + (cfg.models.video_priority || []).join('  ->  '));
+  const index = readIndex();
+  console.log('priority  : ' + (cfg.models.priority || []).join('  ->  '));
+  const videoPriority = cfg.models.video_priority || [];
+  console.log('video     : ' + (videoPriority.length ? videoPriority.join('  ->  ') : '(none on codex, film step has no candidate)'));
   console.log('providers : ' + (cfg.providers || []).map((p) => p.id + ' (' + (p.models || []).length + ' models)').join(', ') || '(none in the config)');
+  if (index.models.length) {
+    const c = (index.by_provider.codex || []).length;
+    console.log('index     : ' + index.models.length + ' on gateway (image ' + index.image.length + ', video ' + index.video.length + ') -- codex ' + c + ' (rest filtered out by the single codex provider)');
+  } else {
+    console.log('index     : empty -- run `zoe init --sync` to fetch the live list from the gateway');
+  }
   try {
-    const pick = modelList.resolve(cfg);
-    console.log('available : ' + pick.available.join(', '));
-    console.log('picked    : ' + pick.id + (pick.skipped.length ? '   (skipped ' + pick.skipped.join(', ') + ')' : ''));
+    const pick = modelList.resolve(cfg, undefined, { index });
+    console.log('available : ' + pick.available.length + ' candidates');
+    console.log('picked    : ' + pick.id + (pick.provider_id ? '  (provider ' + pick.provider_id + ')' : '') + (pick.skipped.length ? '   (skipped ' + pick.skipped.join(', ') + ')' : ''));
   } catch (err) {
     console.log('available : (none)');
     console.log('picked    : nothing, ' + err.message.split(String.fromCharCode(10))[0]);

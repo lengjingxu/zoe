@@ -25,7 +25,9 @@ function usesChatImage(cfg, id) {
 
 export function filmModel(cfg) {
   const priority = cfg.models.video_priority;
-  if (!priority?.length) throw new Error('no models.video_priority in the config, nothing to film with');
+  if (!priority || !priority.length) {
+    throw new Error('no models.video_priority in the config: the codex side has no video model, film is not available');
+  }
   return resolve({ ...cfg, models: { priority } }, undefined, { index: readIndex() });
 }
 

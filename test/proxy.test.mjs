@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { frameBytes, encodedLength, endpoint, draw } from '../src/proxy.mjs';
+import { frameBytes, encodedLength, endpoint, draw, filmModel } from '../src/proxy.mjs';
 
 const TINY_JPEG =
   '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAx' +
@@ -69,6 +69,15 @@ test('endpoint({ id, provider_id }) routes to the named provider without an id r
 test('endpoint({ id, provider_id }) names the unknown provider in the error', () => {
   const cfg = { providers: [{ id: 'codex', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://codex.example/v1', models: [] }] };
   assert.throws(() => endpoint(cfg, { id: 'qwen-image-3.0', provider_id: 'aliyun' }), /forced provider aliyun/);
+});
+
+test('filmModel throws a codex-specific message when no video_priority is set', () => {
+  process.env.ZOE_TEST_KEY = 'sk-test';
+  const cfg = {
+    models: { priority: ['gpt-image-2.5*'], video_priority: [] },
+    providers: [{ id: 'codex', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://codex.example/v1', models: [] }]
+  };
+  assert.throws(() => filmModel(cfg), /codex side has no video model/);
 });
 
 test('makeSeamlessLoop safely returns original buffer when input cannot be processed', async () => {
