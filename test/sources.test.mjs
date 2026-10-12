@@ -116,3 +116,46 @@ test('harness noise and wallpaper talk are ignored', async () => {
   assert.deepEqual(out.items.map((i) => i.text), ['检查下任务的执行情况']);
 });
 
+test('scheduled sessions are excluded from Cindy and agent transcripts', async () => {
+  const { root, codex, cc, memory } = sandbox();
+  const db = path.join(root, 'cindy-schedule.db');
+  const scheduleSession = 'scheduled-session';
+  const sdkSession = 'scheduled-sdk-session';
+  const createdAt = now - 7 * 60000;
+  const sql = [
+    'CREATE TABLE sessions (id text primary key, title text, sdk_session_id text);',
+    'CREATE TABLE messages (id text primary key, session_id text, role text, content text, created_at integer, rewind_at integer);',
+    "INSERT INTO sessions VALUES ('scheduled-session', '[Schedule] wallpaper', 'scheduled-sdk-session');",
+    "INSERT INTO sessions VALUES ('human-session', 'human work', 'human-sdk-session');",
+    "INSERT INTO messages VALUES ('scheduled-message', 'scheduled-session', 'user', 'scheduled Cindy conversation', " + createdAt + ', NULL);',
+    "INSERT INTO messages VALUES ('human-message', 'human-session', 'user', 'human Cindy conversation', " + createdAt + ', NULL);'
+  ].join('\n');
+  execFileSync('sqlite3', [db, sql]);
+  rollout(path.join(codex, 'rollout-scheduled.jsonl'), [
+    { type: 'session_meta', payload: { id: sdkSession, cwd: '/Users/me/Desktop/codepro/demo' } },
+    userTurn('scheduled Codex conversation', 6)
+  ]);
+  rollout(path.join(codex, 'rollout-human.jsonl'), [
+    { type: 'session_meta', payload: { id: 'human-sdk-session', cwd: '/Users/me/Desktop/codepro/demo' } },
+    userTurn('human Codex conversation', 5)
+  ]);
+  fs.writeFileSync(path.join(cc, sdkSession + '.jsonl'), JSON.stringify({
+    type: 'user', timestamp: at(4), cwd: '/Users/me/Desktop/codepro/demo', message: { content: 'scheduled Claude conversation' }
+  }));
+  fs.writeFileSync(path.join(cc, 'human-sdk-session.jsonl'), JSON.stringify({
+    type: 'user', timestamp: at(3), cwd: '/Users/me/Desktop/codepro/demo', message: { content: 'human Claude conversation' }
+  }));
+
+  const out = await collect(loadConfig(), {
+    hours: 1,
+    now,
+    excludeSessionIds: [scheduleSession],
+    found: { cindy: db, codexHomes: [path.join(root, 'codex-home')], ccHomes: [path.join(root, 'claude')], memoryDirs: [path.dirname(memory)] }
+  });
+
+  const texts = out.items.map((item) => item.text);
+  assert.ok(!texts.some((text) => text.startsWith('scheduled ')), JSON.stringify(texts));
+  assert.ok(texts.some((text) => text === 'human Cindy conversation'));
+  assert.ok(texts.some((text) => text === 'human Codex conversation'));
+  assert.ok(texts.some((text) => text === 'human Claude conversation'));
+});

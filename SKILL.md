@@ -20,8 +20,10 @@ pieces are, `AGENTS.md` if you are changing the code.
 
 ## 1. What happened
 
+For a scheduled run, call `schedule_list_runs` for this schedule and collect the `sessionId` values from runs fired in the last hour, including the current run. Pass each ID to `gather` with a repeated `--exclude-session ID`. If the run history or current run ID is unavailable, stop without drawing. Manual runs do not need this exclusion.
+
 ```sh
-node bin/zoe.mjs gather --hours 1 --json > /tmp/zoe-data.json
+node bin/zoe.mjs gather --hours 1 --json [--exclude-session ID ...] > /tmp/zoe-data.json
 ```
 
 `items` is what was typed in the last hour, oldest first, with the project and the

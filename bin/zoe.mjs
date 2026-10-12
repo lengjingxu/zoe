@@ -119,7 +119,7 @@ async function cmdModels(cfg) {
 // Everything zoe is allowed to know about this hour, as text, and as JSON on request.
 async function cmdGather(cfg) {
   const hours = num(argv.hours, cfg.hours);
-  const out = await collect(cfg, { hours });
+  const out = await collect(cfg, { hours, excludeSessionIds: argv.excludeSession || [] });
   // With --json the whole of stdout is the JSON, so `> /tmp/zoe-data.json` writes a file
   // that parses. The readable listing is the other mode.
   if (argv.json) return console.log(JSON.stringify(out, null, 2));
@@ -367,7 +367,7 @@ function usage() {
     '  init                     write a default config to ~/.zoe/config.json',
     '  detect                   which clients were found on this machine, and where',
     '  models                   the model priority list, and which one wins',
-    '  gather [--hours N] [--json]   what this hour looks like, from the transcripts',
+    '  gather [--hours N] [--json] [--exclude-session ID]   read this hour, excluding sessions',
     '  room                     what stands in the room, and the memory it could take',
     '  room --write FILE        add or retire keepsakes (one new per run, room of six)',
     '  prompt                   the prompt in use, the one the last hour drew with',
@@ -393,7 +393,12 @@ function parseArgs(list) {
   const out = { _: [] };
   for (let i = 0; i < list.length; i++) {
     const a = list[i];
-    if (a.startsWith('--')) out[a.slice(2)] = list[i + 1] && !list[i + 1].startsWith('--') ? list[++i] : true;
+    if (a === '--exclude-session') {
+      const id = list[i + 1];
+      if (!id || id.startsWith('--')) throw new Error('--exclude-session requires an ID');
+      (out.excludeSession ||= []).push(id);
+      i++;
+    } else if (a.startsWith('--')) out[a.slice(2)] = list[i + 1] && !list[i + 1].startsWith('--') ? list[++i] : true;
     else out._.push(a);
   }
   return out;
