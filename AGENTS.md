@@ -23,7 +23,7 @@ about lives in `SKILL.md`, in prose, and is decided by the agent each hour.
 
 ```
 init / detect / models
-gather [--hours N] [--json]        data only: what happened, plus the long memory
+gather [--hours N] [--json] [--exclude-session ID]  data only: what happened, plus the long memory
 room [--write FILE]                the keepsakes, in and out
 prompt [--write FILE] [--note ID]  the text in use, and the only door a new one uses
 draw [--ref FILE|none] [--prompt FILE] [--out FILE]      the proxy draws the hour

@@ -31,15 +31,20 @@ export function detect() {
 
 // Everything the clients did inside the window, newest last. Transcripts are
 // whole-session files, so the window is applied to each line, not to the file.
-export async function collect(cfg, { hours, now = Date.now(), found } = {}) {
+export async function collect(cfg, { hours, now = Date.now(), found, excludeSessionIds = [] } = {}) {
   const span = (hours ?? cfg.hours) * 3600e3;
   const from = now - span;
   const clients = found || detect();
   const items = [];
+  const excluded = new Set(excludeSessionIds.filter(Boolean));
+  const excludedTranscripts = new Set(excluded);
 
-  if (cfg.sources.cindy && clients.cindy) items.push(...cindyItems(clients.cindy, from));
-  if (cfg.sources.codex) items.push(...(await codexItems(clients.codexHomes || [], from)));
-  if (cfg.sources.claudecode) items.push(...ccItems(clients.ccHomes || [], from));
+  if (clients.cindy && excluded.size) {
+    for (const id of linkedSessionIds(clients.cindy, excluded)) excludedTranscripts.add(id);
+  }
+  if (cfg.sources.cindy && clients.cindy) items.push(...cindyItems(clients.cindy, from, excluded));
+  if (cfg.sources.codex) items.push(...(await codexItems(clients.codexHomes || [], from, excludedTranscripts)));
+  if (cfg.sources.claudecode) items.push(...ccItems(clients.ccHomes || [], from, excludedTranscripts));
 
   const memory = cfg.sources.memory ? memoryItems(clients.memoryDirs || []) : [];
   return {
@@ -90,31 +95,43 @@ function sqlite(db, sql) {
   return out.trim() ? JSON.parse(out) : [];
 }
 
-function cindyItems(db, from) {
+function cindyItems(db, from, excludeSessionIds) {
+  const excluded = sqlList(excludeSessionIds);
+  const skipSessions = excluded ? 'AND m.session_id NOT IN (' + excluded + ')' : '';
   const rows = sqlite(
     db,
     `SELECT m.created_at AS at, s.title AS project,
        CASE WHEN json_valid(m.content) THEN json_extract(m.content, '$.text') ELSE m.content END AS text
      FROM messages m LEFT JOIN sessions s ON m.session_id = s.id
-     WHERE m.role = 'user' AND m.rewind_at IS NULL AND m.created_at >= ${Math.floor(from)}
+     WHERE m.role = 'user' AND m.rewind_at IS NULL AND m.created_at >= ${Math.floor(from)} ${skipSessions}
      ORDER BY m.created_at DESC LIMIT 300`
   );
   return rows.map((r) => ({ at: r.at, source: 'cindy', project: r.project || '', text: clean(r.text) }));
 }
 
+function linkedSessionIds(db, sessionIds) {
+  const ids = sqlList(sessionIds);
+  if (!ids) return [];
+  return sqlite(db, 'SELECT sdk_session_id FROM sessions WHERE id IN (' + ids + ')').map((row) => row.sdk_session_id).filter(Boolean);
+}
+
+function sqlList(ids) {
+  return [...ids].map((id) => "'" + String(id).replaceAll("'", "''") + "'").join(',');
+}
+
 // ------------------------------------------------------------ codex transcripts
 
-async function codexItems(homes, from) {
+async function codexItems(homes, from, excludeSessionIds) {
   const items = [];
   for (const home of homes) {
     for (const file of recent(path.join(home, 'sessions'), from)) {
-      items.push(...(await parseRollout(file, home, from)));
+      items.push(...(await parseRollout(file, home, from, excludeSessionIds)));
     }
   }
   return items;
 }
 
-async function parseRollout(file, home, from) {
+async function parseRollout(file, home, from, excludeSessionIds) {
   const out = [];
   let cwd = '';
   const rl = readline.createInterface({ input: fs.createReadStream(file), crlfDelay: Infinity });
@@ -125,11 +142,12 @@ async function parseRollout(file, home, from) {
     } catch {
       continue;
     }
+    const payload = row.payload;
     if (row.type === 'session_meta') {
-      cwd = row.payload?.cwd || '';
+      if (excludeSessionIds.has(payload?.id) || excludeSessionIds.has(payload?.session_id)) break;
+      cwd = payload?.cwd || '';
       continue;
     }
-    const payload = row.payload;
     if (row.type !== 'event_msg' || payload?.item?.type !== 'UserMessage') continue;
     const at = millis(payload.completed_at_ms) || millis(Date.parse(row.timestamp));
     if (!at || at < from) continue;
@@ -151,10 +169,11 @@ function promptOf(content) {
 
 // ------------------------------------------------------- claude code transcripts
 
-function ccItems(homes, from) {
+function ccItems(homes, from, excludeSessionIds) {
   const items = [];
   for (const home of homes) {
     for (const file of recent(path.join(home, 'projects'), from, '.jsonl', 5)) {
+      if (excludeSessionIds.has(path.basename(file, '.jsonl'))) continue;
       let cwd = '';
       for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
         let row;
