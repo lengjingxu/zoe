@@ -329,6 +329,30 @@ Measured here on one still of 1248x832 and the loop made from it:
 A movie is not free. It costs GPU and battery on a large display; if the fan matters
 more than the drift, stay with the stills.
 
+## The wall
+
+Every picture `show` puts on the desktop is also delivered to a page, so the hour can be
+seen from a browser and from the TV. The index lives on a Cloudflare Worker and the
+pictures on Aliyun OSS: the TV's network cannot reach Cloudflare, and OSS is what it can.
+
+`publish` in `~/.zoe/config.json` turns it on. An empty `url` means nothing is published,
+which is the default a clone starts with.
+
+```json
+"publish": {
+  "url": "https://zoe-wallpaper.lengjingxu.workers.dev",
+  "token": "...",
+  "oss_bucket": "zoe-wallpaper-wall",
+  "oss_endpoint": "oss-cn-hangzhou.aliyuncs.com",
+  "oss_key_id": "...",
+  "oss_key_secret": "..."
+}
+```
+
+`show` uploads the picture, then rewrites `wall/index.json` on OSS with a signed address
+for each entry, good for a year. The TV reads that file and nothing else. A publish that
+fails is reported and the run exits non-zero, but the picture is already on the desktop:
+a broken wall never takes the hour down with it.
 ## Privacy
 
 zoe reads local transcripts and sends one English paragraph to one image model. The

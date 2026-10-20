@@ -12,6 +12,7 @@ import * as store from '../src/state.mjs';
 import { paper } from '../src/note.mjs';
 import * as movie from '../src/movie.mjs';
 import { animate } from '../src/motion.mjs';
+import * as publish from '../src/publish.mjs';
 import * as proxy from '../src/proxy.mjs';
 import { read as readIndex, refresh as refreshIndex } from '../src/models_index.mjs';
 
@@ -199,6 +200,23 @@ async function cmdShow(cfg) {
   roomMod.save(ROOM_PATH, roomMod.touch(roomMod.load(ROOM_PATH), now));
   const gone = wallpaper.prune(cfg.out_dir, cfg.keep_wallpapers);
   log('desktop set to ' + unique + (gone.length ? ', pruned ' + gone.length + ' old file(s)' : ''));
+  await publishIfAsked(cfg, { image: unique, at: now, topic: argv.topic || path.basename(image),
+    scene: argv.scene || null, model: argv.model || meta.model || null, fresh: argv.fresh === true || meta.fresh === true });
+}
+
+// Delivering the hour to the wall is part of show, so an hourly run that sets the
+// desktop also publishes without a second step. Not configured means not published.
+async function publishIfAsked(cfg, entry) {
+  const p = cfg.publish || {};
+  if (!p.url) return;
+  try {
+    const out = await publish.push({ ...entry, url: p.url, token: publish.resolveToken(p), publish: p });
+    log('published ' + entry.at + ' to ' + p.url + ' (' + out.total + ' on the wall)');
+  } catch (err) {
+    // The picture is already on the desktop; say what broke and let the run fail loudly.
+    console.error('[zoe] ' + err.message);
+    process.exitCode = 1;
+  }
 }
 
 // An empty hour should not cost a picture: bring one back from the pool instead.

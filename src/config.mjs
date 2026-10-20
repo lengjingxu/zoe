@@ -45,6 +45,8 @@ const DEFAULTS = {
   sources: { cindy: true, codex: true, claudecode: true, memory: true },
   ignore: ['壁纸', 'wallpaper', 'zoe ', '[UI_ACTION_TRIGGER]', '[Schedule]', 'AGENTS.md instructions'],
   wishes: [],
+  // The wall the pictures are also delivered to (src/publish.mjs). Empty url = not published.
+  publish: { url: '', token_env: 'ZOE_PUBLISH_TOKEN' },
   refresh: { dock_restart: true }
 };
 
