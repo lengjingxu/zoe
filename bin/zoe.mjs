@@ -226,8 +226,8 @@ async function publishIfAsked(cfg, entry) {
 // Attaching the written line after the fact: the picture goes up with the hour, the caption may
 // arrive a minute later from whoever writes it.
 async function cmdCaption(cfg) {
-  const text = (argv.text || '').trim();
-  if (!text) throw new Error('caption --text "..." is required');
+  const text = (argv.text && argv.text !== true ? String(argv.text) : argv.file ? fs.readFileSync(String(argv.file), 'utf8') : '').trim();
+  if (!text) throw new Error('caption --text "..." or --file PATH is required');
   const state = store.load(STATE_PATH);
   const at = argv.at ? Number(argv.at) : (state.history[state.history.length - 1] || {}).at;
   const entry = state.history.find((h) => h.at === at);
