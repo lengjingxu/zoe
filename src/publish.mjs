@@ -59,12 +59,15 @@ function putObject({ host, resource, body, contentType, id, secret }) {
   });
 }
 
-export function payload({ at, topic, scene, model, fresh }) {
+export function payload({ at, topic, caption, scene, model, fresh }) {
   return {
     key: keyFor(at),
     meta: {
       at: Math.trunc(Number(at)),
       topic: String(topic || '').slice(0, 300),
+      // What the wall shows. topic stays the internal record of the hour; caption is written for
+      // a reader who only sees the picture.
+      caption: String(caption || '').slice(0, 400),
       scene: scene || null,
       model: model || null,
       fresh: !!fresh
@@ -72,7 +75,7 @@ export function payload({ at, topic, scene, model, fresh }) {
   };
 }
 
-export async function push({ url, token, image, at, topic, scene, model, fresh, publish }) {
+export async function push({ url, token, image, at, topic, caption, scene, model, fresh, publish }) {
   if (!url) throw new Error('publish: publish.url is not set in ~/.zoe/config.json');
   const bucket = publish.oss_bucket;
   const endpoint = publish.oss_endpoint;
@@ -85,7 +88,7 @@ export async function push({ url, token, image, at, topic, scene, model, fresh, 
   const res = await fetch(url.replace(/\/+$/, '') + '/api/push', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-push-token': token },
-    body: JSON.stringify(payload({ at, topic, scene, model, fresh }))
+    body: JSON.stringify(payload({ at, topic, caption, scene, model, fresh }))
   });
   let out = null;
   try { out = await res.json(); } catch (e) {

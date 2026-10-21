@@ -43,6 +43,8 @@ async function main() {
       return cmdPrompt(cfg);
     case 'show':
       return cmdShow(cfg);
+    case 'caption':
+      return cmdCaption(cfg);
     case 'last':
       return cmdLast();
     case 'draw':
@@ -189,6 +191,7 @@ async function cmdShow(cfg) {
     at: now,
     image: unique,
     topic: argv.topic || path.basename(image),
+    caption: argv.caption || null,
     scene: argv.scene || null,
     interaction: argv.pose || null,
     note: argv.note || null,
@@ -201,6 +204,7 @@ async function cmdShow(cfg) {
   const gone = wallpaper.prune(cfg.out_dir, cfg.keep_wallpapers);
   log('desktop set to ' + unique + (gone.length ? ', pruned ' + gone.length + ' old file(s)' : ''));
   await publishIfAsked(cfg, { image: unique, at: now, topic: argv.topic || path.basename(image),
+    caption: argv.caption || null,
     scene: argv.scene || null, model: argv.model || meta.model || null, fresh: argv.fresh === true || meta.fresh === true });
 }
 
@@ -216,6 +220,27 @@ async function publishIfAsked(cfg, entry) {
     // The picture is already on the desktop; say what broke and let the run fail loudly.
     console.error('[zoe] ' + err.message);
     process.exitCode = 1;
+  }
+}
+
+// Attaching the written line after the fact: the picture goes up with the hour, the caption may
+// arrive a minute later from whoever writes it.
+async function cmdCaption(cfg) {
+  const text = (argv.text || '').trim();
+  if (!text) throw new Error('caption --text "..." is required');
+  const state = store.load(STATE_PATH);
+  const at = argv.at ? Number(argv.at) : (state.history[state.history.length - 1] || {}).at;
+  const entry = state.history.find((h) => h.at === at);
+  if (!entry) throw new Error('no hour recorded at ' + at);
+  entry.caption = text;
+  store.save(STATE_PATH, state);
+  log('caption set on ' + new Date(at).toLocaleString() + ': ' + text);
+  const p = cfg.publish || {};
+  if (p.url && entry.image && fs.existsSync(entry.image)) {
+    const out = await publish.push({ url: p.url, token: publish.resolveToken(p), publish: p,
+      image: entry.image, at: entry.at, topic: entry.topic, caption: text,
+      scene: entry.scene, model: entry.model, fresh: entry.fresh });
+    log('republished ' + entry.at + ' (' + out.total + ' on the wall)');
   }
 }
 
@@ -397,7 +422,8 @@ function usage() {
     '  film [--first-frame F]   turn that still into a loop, print the file it landed in',
     '      [--prompt FILE] [--seconds N] [--out FILE]',
     '  show --image FILE        put an image on every desktop and record the hour',
-    '      [--topic T] [--scene ID] [--pose WORDS] [--note ID] [--model M]',
+    '  caption [--at TS] --text I  attach or replace the line the wall shows',
+    '      [--topic T] [--caption C] [--scene ID] [--pose WORDS] [--note ID] [--model M]',
     '  reuse                    bring a wallpaper back from the pool without drawing',
     '  motion                   the text that turns the picture on screen into a loop',
     '  loop --video FILE        play a movie at the desktop layer, under the icons',

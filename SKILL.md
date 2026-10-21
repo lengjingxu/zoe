@@ -249,7 +249,27 @@ particular, and add no keepsake.
 - Never let a picture land without `show`: an unrecorded picture leaves the room and the
   reuse pool out of step with the desktop.
 
+## 5.5 The caption
+
+The wall shows one written line under each picture. It is not the hour summary.
+
+After the picture is drawn and before `show`, hand this hour's `topic` and the picture's
+mood to 说人话大师 (`bot_mobile_cf3e22c8bb2b671190fb6f80f05c0d22d4571564`) and use the line
+it returns. Rules and examples: [docs/caption.md](docs/caption.md).
+
+- 18–45 汉字, one or two sentences, written for someone looking at the picture.
+- No task lists, no project or client names, no emoji, no AI 套话.
+- Pass it as `--caption "..."`. `--topic` stays the internal record of the hour.
+
+If 说人话大师 cannot be reached, publish without a caption rather than reusing `topic`:
+the page falls back to `topic`, and a work log under a picture reads wrong. Say so in the
+report.
+
+```sh
+node bin/zoe.mjs show --image /tmp/zoe-1.jpg   --topic "what the hour was about" --caption "她靠在窗边，屋里的光已经淡下去了"   --scene shanghai-lujiazui --pose "..." --model gpt-image-2.5
+```
+
 ## Report
 
-One line back to the user: what the hour was about, the file that landed, and whether it
-moves.
+One line back to the user: what the hour was about, the file that landed, whether it
+moves, and the caption that went on the wall.
