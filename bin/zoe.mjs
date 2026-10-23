@@ -249,9 +249,9 @@ async function cmdReuse(cfg) {
   const now = Date.now();
   const state = store.prune(store.load(STATE_PATH), now, cfg.reuse_hours);
   if (!state.pool.length) return log('the pool is empty, nothing to bring back');
-  const image = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
-  const unique = putOnDesktop(cfg, image, now);
-  store.remember(state, { at: now, image: unique, topic: 'idle reuse' }, { now, reuseHours: cfg.reuse_hours });
+  const picked = store.rotate(state.pool.map((p) => p.image), state.history, 'image');
+  const unique = putOnDesktop(cfg, picked, now);
+  store.reuse(state, picked, unique, { now, reuseHours: cfg.reuse_hours });
   store.save(STATE_PATH, state);
   log('brought back ' + unique);
 }

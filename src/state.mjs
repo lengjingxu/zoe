@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 const EMPTY = { version: 1, history: [], pool: [] };
 
@@ -19,8 +20,29 @@ export function save(file, state) {
 
 export function prune(state, now, reuseHours, keepHistory = 200) {
   state.pool = (state.pool || []).filter((x) => x.expires_at > now && x.image && fs.existsSync(x.image));
+  state.pool = onePerPicture(state.pool);
   state.history = (state.history || []).slice(-keepHistory);
   return state;
+}
+
+// The desktop keeps a copy of every wallpaper it shows, so the same picture can sit
+// in the pool under two names. The pool holds one entry per picture: the newest copy.
+function onePerPicture(pool) {
+  const pictures = new Map();
+  for (const entry of pool) {
+    const key = pictureKey(entry.image);
+    const held = pictures.get(key);
+    if (!held || entry.at > held.at) pictures.set(key, entry);
+  }
+  return [...pictures.values()];
+}
+
+function pictureKey(file) {
+  try {
+    return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  } catch {
+    return file; // unreadable: the path is the only name this picture has
+  }
 }
 
 // A prompt-only generation resets the compounding cost of image-to-image. Keep this
@@ -34,6 +56,19 @@ export function freshDue(history, now, hours) {
 export function remember(state, entry, { now, reuseHours }) {
   state.history.push(entry);
   state.pool.push({ at: now, expires_at: now + reuseHours * 3600e3, image: entry.image, topic: entry.topic });
+  return state;
+}
+
+// A picture that comes back is the same picture under a new file name, so the pool
+// entry follows it instead of joining the pool a second time. The rotation then moves
+// on to another picture instead of handing back the one just shown.
+export function reuse(state, picked, image, { now, reuseHours }) {
+  const i = state.pool.findIndex((p) => p.image === picked);
+  const kept = i >= 0 ? state.pool[i] : { topic: 'idle reuse' };
+  const entry = { ...kept, at: now, expires_at: now + reuseHours * 3600e3, image };
+  if (i >= 0) state.pool[i] = entry;
+  else state.pool.push(entry);
+  state.history.push({ at: now, image, topic: 'idle reuse' });
   return state;
 }
 
