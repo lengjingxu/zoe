@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { resolve, resolveAll, providerOf } from '../src/models.mjs';
-import { load, save, prune, remember, rotate } from '../src/state.mjs';
+import { load, save, prune, remember, reuse, rotate } from '../src/state.mjs';
 
 const config = { models: { priority: ['xai/grok-imagine-image-2.0', 'openai/gpt-image-2'] }, providers: [] };
 const fallbackConfig = {
@@ -118,4 +118,58 @@ test('rotation prefers whatever was used longest ago', () => {
   const history = [{ scene: 'a' }, { scene: 'b' }, { scene: 'a' }];
   assert.equal(rotate(['a', 'b', 'c'], history, 'scene'), 'c');
   assert.equal(rotate(['a', 'b'], history, 'scene'), 'b');
+});
+
+test('the pool keeps one entry per picture, not one per copy of it', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zoe-state-'));
+  const first = path.join(dir, 'first.jpg');
+  const copy = path.join(dir, 'copy.jpg');
+  const other = path.join(dir, 'other.jpg');
+  fs.writeFileSync(first, 'same picture');
+  fs.writeFileSync(copy, 'same picture');
+  fs.writeFileSync(other, 'another picture');
+  const state = {
+    history: [],
+    pool: [
+      { at: 100, expires_at: 999, image: first, topic: 'one' },
+      { at: 200, expires_at: 999, image: copy, topic: 'one' },
+      { at: 300, expires_at: 999, image: other, topic: 'two' }
+    ]
+  };
+  prune(state, 150, 6);
+  assert.deepEqual(state.pool.map((p) => p.image), [copy, other]);
+});
+
+test('a reused picture keeps its pool entry instead of joining the pool twice', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zoe-state-'));
+  const original = path.join(dir, 'original.jpg');
+  const copy = path.join(dir, 'copy.jpg');
+  fs.writeFileSync(original, 'a picture');
+  fs.writeFileSync(copy, 'a picture');
+  const state = { history: [], pool: [] };
+  remember(state, { at: 100, image: original, topic: 'the hour' }, { now: 100, reuseHours: 6 });
+  reuse(state, original, copy, { now: 200, reuseHours: 6 });
+  assert.equal(state.pool.length, 1);
+  assert.equal(state.pool[0].image, copy);
+  assert.equal(state.pool[0].topic, 'the hour');
+  assert.equal(state.history.length, 2);
+  assert.equal(state.history[1].image, copy);
+});
+
+test('rotation moves on after a picture comes back', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zoe-state-'));
+  const one = path.join(dir, 'one.jpg');
+  const two = path.join(dir, 'two.jpg');
+  const copy = path.join(dir, 'copy.jpg');
+  fs.writeFileSync(one, 'one');
+  fs.writeFileSync(two, 'two');
+  fs.writeFileSync(copy, 'one');
+  const state = { history: [], pool: [] };
+  remember(state, { at: 100, image: one, topic: 'first' }, { now: 100, reuseHours: 6 });
+  remember(state, { at: 200, image: two, topic: 'second' }, { now: 200, reuseHours: 6 });
+  const picked = rotate(state.pool.map((p) => p.image), state.history, 'image');
+  assert.equal(picked, one);
+  reuse(state, picked, copy, { now: 300, reuseHours: 6 });
+  const next = rotate(state.pool.map((p) => p.image), state.history, 'image');
+  assert.equal(next, two);
 });
