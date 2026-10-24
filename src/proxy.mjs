@@ -98,7 +98,7 @@ export async function draw(cfg, { prompt, ref, size }) {
   }
   if (!ref) {
     const out = await send(base + '/images/generations', key, { model: id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
-    return { buffer: await bytes(out, base, key), model: id };
+    return { buffer: await bytes(out, base, key), model: id, ref: null };
   }
   if (!fs.existsSync(ref)) throw new Error('no picture at ' + ref + ' to draw from');
 
@@ -111,9 +111,13 @@ export async function draw(cfg, { prompt, ref, size }) {
     form.set('image', new Blob([fs.readFileSync(ref)], { type: 'image/jpeg' }), path.basename(ref));
     const out = await send(base + '/images/edits', key, null, form);
     return { buffer: await bytes(out, base, key), model: id, ref };
-  } catch {
+  } catch (err) {
+    // The gateway refused or never answered the request that carried the previous
+    // picture. The room is rebuilt from the prompt alone on the same model and the
+    // same proxy, and the caller is told, so a rebuild is never passed off as the
+    // reset that was due.
     const out = await send(base + '/images/generations', key, { model: id, prompt, size: shape, n: 1, quality: 'high', output_format: 'jpg' });
-    return { buffer: await bytes(out, base, key), model: id };
+    return { buffer: await bytes(out, base, key), model: id, ref: null, refFailed: err.message };
   }
 }
 

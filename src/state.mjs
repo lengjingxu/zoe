@@ -52,6 +52,14 @@ export function freshDue(history, now, hours) {
   return !last || now - last.at >= hours * 3600e3;
 }
 
+// A picture is a rebuild when it was drawn from the prompt alone. That happens when
+// the reset is due on the clock, and also when the gateway drops the request that
+// carried the previous picture: the room was rebuilt either way, so the record says
+// what happened rather than what was planned.
+export function rebuiltFromPrompt(due, ref) {
+  return due || !ref;
+}
+
 // One line per picture: enough for the next hour to know what was drawn, and no more.
 export function remember(state, entry, { now, reuseHours }) {
   state.history.push(entry);
