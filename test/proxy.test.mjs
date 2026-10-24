@@ -108,3 +108,44 @@ test('a chat-image model returns the image embedded in the message', async () =>
     global.fetch = original;
   }
 });
+
+test('a reference request the gateway never answers rebuilds the room and says so', async () => {
+  const original = global.fetch;
+  const seen = [];
+  global.fetch = async (url) => {
+    seen.push(String(url));
+    if (String(url).endsWith('/images/edits')) throw new Error('the gateway never answered');
+    return { ok: true, text: async () => JSON.stringify({ data: [{ b64_json: TINY_JPEG }] }) };
+  };
+  try {
+    const cfg = {
+      size: '1792x1024',
+      models: { priority: ['m'] },
+      providers: [{ id: 'proxy', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://localhost:1234/v1', models: ['m'] }]
+    };
+    const drawn = await draw(cfg, { prompt: 'test picture', ref: tiny });
+    assert.equal(drawn.model, 'm', 'the same model drew it');
+    assert.equal(drawn.ref, null, 'there is no reference, because the room was rebuilt');
+    assert.match(drawn.refFailed, /never answered/, 'the run is told the reference request failed');
+    assert.ok(seen.some((u) => u.endsWith('/images/generations')), 'the picture came from the prompt alone');
+  } finally {
+    global.fetch = original;
+  }
+});
+
+test('a picture drawn with a reference keeps it', async () => {
+  const original = global.fetch;
+  global.fetch = async () => ({ ok: true, text: async () => JSON.stringify({ data: [{ b64_json: TINY_JPEG }] }) });
+  try {
+    const cfg = {
+      size: '1792x1024',
+      models: { priority: ['m'] },
+      providers: [{ id: 'proxy', api_key_env: 'ZOE_TEST_KEY', base_url: 'http://localhost:1234/v1', models: ['m'] }]
+    };
+    const drawn = await draw(cfg, { prompt: 'test picture', ref: tiny });
+    assert.equal(drawn.ref, tiny, 'the room was carried over from the last picture');
+    assert.equal(drawn.refFailed, undefined, 'nothing failed');
+  } finally {
+    global.fetch = original;
+  }
+});

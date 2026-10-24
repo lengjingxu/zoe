@@ -337,12 +337,14 @@ async function cmdDraw(cfg) {
   const prompt = (argv.prompt ? readInput(argv.prompt) : fs.readFileSync(PROMPT_PATH, 'utf8')).trim();
   const now = Date.now();
   const state = store.load(STATE_PATH);
-  const fresh = argv.ref === 'none' || (!argv.ref && store.freshDue(state.history, now, cfg.fresh_hours));
-  const ref = fresh ? null : refFor(argv.ref);
+  const due = argv.ref === 'none' || (!argv.ref && store.freshDue(state.history, now, cfg.fresh_hours));
+  const ref = due ? null : refFor(argv.ref);
   const out = argv.out || path.join(os.tmpdir(), 'zoe-' + Date.now() + '.jpg');
   const drawn = await proxy.draw(cfg, { prompt, ref });
   fs.writeFileSync(out, drawn.buffer);
+  const fresh = store.rebuiltFromPrompt(due, drawn.ref);
   fs.writeFileSync(out + '.json', JSON.stringify({ at: now, fresh, model: drawn.model }) + String.fromCharCode(10));
+  if (drawn.refFailed) log('the reference request failed, so the room was rebuilt from the prompt alone: ' + drawn.refFailed);
   log('drew with ' + drawn.model + (drawn.ref ? ' from ' + drawn.ref : ' fresh from the prompt alone') + ' -> ' + out);
   console.log(out);
 }
