@@ -5,7 +5,10 @@ import { execFileSync } from 'node:child_process';
 import { resolve, configured } from './models.mjs';
 import { read as readIndex } from './models_index.mjs';
 
-const TIMEOUT = 300e3;
+// The gateway queues a picture for a long time when it is busy: the same request that
+// came back in ninety seconds at noon has taken past three hundred at peak, and a
+// deadline shorter than the queue only turns a slow picture into a failed run.
+const TIMEOUT = 600e3;
 const POLL_EVERY = 10e3;
 const POLL_LIMIT = 60;
 const FRAME_LIMIT = 750e3;
